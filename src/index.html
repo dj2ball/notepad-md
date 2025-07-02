@@ -1175,6 +1175,7 @@
             let inList = false;
             let inDefinitionList = false;
             let inTaskList = false;
+            let inBlockquote = false;
             let listType = 'ul';
             
             for (let i = 0; i < lines.length; i++) {
@@ -1191,6 +1192,10 @@
                         processedLines.push('</dl>');
                         inDefinitionList = false;
                     }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
+                    }
                     const level = line.match(/^#+/)[0].length;
                     const text = line.replace(/^#+\s*/, '');
                     line = `<h${level}>${text}</h${level}>`;
@@ -1204,6 +1209,10 @@
                             inList = false;
                             inTaskList = false;
                         }
+                        if (inBlockquote) {
+                            processedLines.push('</blockquote>');
+                            inBlockquote = false;
+                        }
                         if (!inDefinitionList) {
                             processedLines.push('<dl>');
                             inDefinitionList = true;
@@ -1216,11 +1225,15 @@
                     const definition = line.replace(/^:\s+/, '');
                     line = `<dd>${definition}</dd>`;
                 }
-                // Task lists
-                else if (line.match(/^\s*-\s+\[([ x])\]\s+(.+)/)) {
+                // Task lists (CHECK BEFORE regular lists!)
+                else if (line.match(/^\s*-\s+\[([ xX])\]\s+(.+)/)) {
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
+                    }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
                     }
                     if (!inTaskList) {
                         if (inList && listType !== 'ul') {
@@ -1233,17 +1246,21 @@
                         inTaskList = true;
                         listType = 'ul';
                     }
-                    const checked = line.includes('[x]');
-                    const text = line.replace(/^\s*-\s+\[[ x]\]\s+/, '');
+                    const checked = line.toLowerCase().includes('[x]');
+                    const text = line.replace(/^\s*-\s+\[[ xX]\]\s+/, '');
                     const checkedAttr = checked ? 'checked' : '';
                     const completedClass = checked ? ' completed' : '';
                     line = `<li class="task-list-item${completedClass}"><input type="checkbox" ${checkedAttr} disabled> ${text}</li>`;
                 }
-                // Regular lists
+                // Regular lists (AFTER task lists!)
                 else if (line.match(/^\s*[\*\-\+]\s/)) {
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
+                    }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
                     }
                     if (!inList || inTaskList) {
                         if (inList) processedLines.push(`</${listType}>`);
@@ -1261,6 +1278,10 @@
                         processedLines.push('</dl>');
                         inDefinitionList = false;
                     }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
+                    }
                     if (!inList || listType !== 'ol' || inTaskList) {
                         if (inList) processedLines.push(`</${listType}>`);
                         processedLines.push('<ol>');
@@ -1271,8 +1292,8 @@
                     const text = line.replace(/^\s*\d+\.\s/, '');
                     line = `<li>${text}</li>`;
                 }
-                // Blockquotes
-                else if (line.match(/^\s*>\s/)) {
+                // Blockquotes (now properly grouped)
+                else if (line.match(/^\s*>\s*(.*)$/)) {
                     if (inList) {
                         processedLines.push(`</${listType}>`);
                         inList = false;
@@ -1282,8 +1303,16 @@
                         processedLines.push('</dl>');
                         inDefinitionList = false;
                     }
+                    if (!inBlockquote) {
+                        processedLines.push('<blockquote>');
+                        inBlockquote = true;
+                    }
                     const text = line.replace(/^\s*>\s*/, '');
-                    line = `<blockquote>${text}</blockquote>`;
+                    if (text.trim()) {
+                        line = text;
+                    } else {
+                        line = '<br>';
+                    }
                 }
                 // Horizontal rules
                 else if (line.match(/^(-{3,}|\*{3,}|_{3,})$/)) {
@@ -1295,6 +1324,10 @@
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
+                    }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
                     }
                     line = '<hr>';
                 }
@@ -1308,6 +1341,10 @@
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
+                    }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
                     }
                     // Don't wrap if it's already an HTML tag
                     if (!line.match(/^<[^>]+>/)) {
@@ -1325,6 +1362,10 @@
                         processedLines.push('</dl>');
                         inDefinitionList = false;
                     }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
+                    }
                     line = '';
                 }
                 
@@ -1333,12 +1374,15 @@
                 }
             }
             
-            // Close any open lists
+            // Close any open elements
             if (inList) {
                 processedLines.push(`</${listType}>`);
             }
             if (inDefinitionList) {
                 processedLines.push('</dl>');
+            }
+            if (inBlockquote) {
+                processedLines.push('</blockquote>');
             }
             
             html = processedLines.join('\n');
