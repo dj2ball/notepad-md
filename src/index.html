@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notepad.md</title>
+    <!-- Typography: Inter for UI, JetBrains Mono for code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -11,36 +15,319 @@
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth; /* Smooth scroll in preview pane */
+        }
+
+        /* Focus Mode Styles */
+        .focus-mode .titlebar,
+        .focus-mode .tabs-container,
+        .focus-mode .status-bar {
+            display: none;
+        }
+
+        .focus-mode .content-area {
+            padding: 0; /* Remove padding in focus mode for full screen */
+        }
+
+        .focus-mode .editor-container {
+            border-radius: 0; /* Remove rounded corners in focus mode */
+            box-shadow: none; /* Remove shadow in focus mode */
+        }
+
+        .focus-mode .editor,
+        .focus-mode .preview {
+            border-radius: 0; /* Remove rounded corners in focus mode */
+        }
+
+        /* Smooth transitions for focus mode */
+        .titlebar,
+        .tabs-container,
+        .status-bar,
+        .content-area,
+        .editor-container {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Focus mode body styling */
+        .focus-mode {
+            background: var(--bg-primary);
+        }
+
+        /* Hide scrollbars in focus mode for cleaner look */
+        .focus-mode .tabs-list {
+            scrollbar-width: none;
+        }
+
+        .focus-mode .tabs-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Focus mode exit button - subtle overlay */
+        .focus-exit-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            font-family: inherit;
+            font-weight: 450;
+            box-shadow: 0 2px 8px var(--shadow-light);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            user-select: none;
+        }
+
+        .focus-mode .focus-exit-btn {
+            opacity: 0.6;
+        }
+
+        .focus-exit-btn:hover {
+            opacity: 1 !important;
+            background: var(--button-hover);
+            color: var(--text-primary);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px var(--shadow-medium);
+        }
+
+        .focus-exit-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Show focus exit button on mouse movement */
+        .focus-mode:hover .focus-exit-btn {
+            opacity: 0.8;
+        }
+
+        /* Subtle fade-in animation when entering focus mode */
+        @keyframes focusModeEnter {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 0.6;
+                transform: translateY(0);
+            }
+        }
+
+        .focus-mode .focus-exit-btn {
+            animation: focusModeEnter 0.5s ease-out 0.3s both;
+        }
+
+        /* Find/Replace Panel */
+        .find-replace-panel {
+            position: fixed;
+            top: 60px;
+            right: 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 8px 24px var(--shadow-medium);
+            z-index: 1000;
+            min-width: 320px;
+            display: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .find-replace-panel.show {
+            display: block;
+            animation: slideInFromTop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideInFromTop {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .find-replace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .find-replace-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .find-replace-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .find-replace-close:hover {
+            background: var(--button-hover);
+            color: var(--text-primary);
+        }
+
+        .find-input-group {
+            margin-bottom: 8px;
+        }
+
+        .find-input, .replace-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .find-input:focus, .replace-input:focus {
+            outline: none;
+            border-color: var(--divider-active);
+            box-shadow: 0 0 0 2px var(--focus-ring);
+        }
+
+        .find-input::placeholder, .replace-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .find-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+        }
+
+        .find-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-weight: 450;
+        }
+
+        .find-btn:hover {
+            background: var(--button-hover);
+            border-color: var(--divider-hover);
+        }
+
+        .find-btn:active {
+            transform: scale(0.98);
+        }
+
+        .find-btn.primary {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: var(--divider-active);
+        }
+
+        .find-btn.primary:hover {
+            background: var(--divider-active);
+        }
+
+        .find-stats {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+            opacity: 0.8;
+        }
+
+        /* Hide find panel in focus mode */
+        .focus-mode .find-replace-panel {
+            display: none !important;
+        }
+
         body {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            background: #fefefe;
-            color: #333;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            font-weight: 400;
+            letter-spacing: -0.01em; /* Subtle letter spacing for Inter */
         }
 
         .tabs-container {
-            background: #f5f5f5;
-            border-bottom: 1px solid #e0e0e0;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             flex-shrink: 0;
-            min-height: 36px;
+            min-height: 44px; /* Slightly taller for better proportions */
+            padding: 4px 8px 0 8px; /* 8px grid spacing */
         }
 
         .tabs-list {
             display: flex;
             overflow-x: auto;
+            overflow-y: hidden; /* Hide vertical scrollbar */
             flex: 1;
             scrollbar-width: none; /* Firefox - hide completely */
             -ms-overflow-style: none; /* IE/Edge - hide completely */
         }
 
-        /* Hide scrollbar completely */
+        /* Custom scrollbar for tabs - horizontal only */
         .tabs-list::-webkit-scrollbar {
-            display: none;
+            height: 6px;
+            width: 0px; /* Hide vertical scrollbar */
+        }
+        
+        .tabs-list::-webkit-scrollbar:horizontal {
+            height: 6px;
+        }
+        
+        .tabs-list::-webkit-scrollbar:vertical {
+            width: 0px;
+        }
+
+        .tabs-list::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            cursor: pointer;
+        }
+
+        .tabs-list::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 3px;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .tabs-list::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+            cursor: pointer;
         }
 
         .tab-controls {
@@ -53,18 +340,24 @@
         .new-tab-btn {
             background: none;
             border: none;
-            padding: 6px 8px;
+            padding: 8px 10px; /* Slightly improved padding */
             cursor: pointer;
             font-size: 14px;
-            color: #666;
-            transition: all 0.2s;
+            color: var(--text-secondary);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             margin-left: 4px;
-            border-radius: 2px;
+            border-radius: 6px; /* Consistent rounded corners */
+            font-weight: 450;
         }
 
         .new-tab-btn:hover {
-            background: #e8e8e8;
-            color: #333;
+            background: var(--button-hover);
+            color: var(--text-primary);
+            transform: scale(1.05); /* Micro-bounce on hover */
+        }
+
+        .new-tab-btn:active {
+            transform: scale(0.98); /* Subtle press effect */
         }
 
         .preview-toggle-btn {
@@ -73,13 +366,20 @@
             padding: 8px 12px;
             cursor: pointer;
             font-size: 14px;
-            color: #666;
-            transition: all 0.2s;
+            color: var(--text-secondary);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px; /* Consistent rounded corners */
+            font-weight: 450;
         }
 
         .preview-toggle-btn:hover {
-            background: #e8e8e8;
-            color: #333;
+            background: var(--button-hover);
+            color: var(--text-primary);
+            transform: scale(1.05); /* Micro-bounce on hover */
+        }
+
+        .preview-toggle-btn:active {
+            transform: scale(0.98); /* Subtle press effect */
         }
 
         .dark-mode-toggle-btn {
@@ -88,42 +388,120 @@
             padding: 8px 12px;
             cursor: pointer;
             font-size: 14px;
-            color: #666;
-            transition: all 0.2s;
+            color: var(--text-secondary);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px; /* Consistent rounded corners */
+            font-weight: 450;
         }
 
         .dark-mode-toggle-btn:hover {
-            background: #e8e8e8;
-            color: #333;
+            background: var(--button-hover);
+            color: var(--text-primary);
+            transform: scale(1.05); /* Micro-bounce on hover */
+        }
+
+        .dark-mode-toggle-btn:active {
+            transform: scale(0.98); /* Subtle press effect */
+        }
+
+        .focus-mode-toggle-btn {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px; /* Consistent rounded corners */
+            font-weight: 450;
+        }
+
+        .focus-mode-toggle-btn:hover {
+            background: var(--button-hover);
+            color: var(--text-primary);
+            transform: scale(1.05); /* Micro-bounce on hover */
+        }
+
+        .focus-mode-toggle-btn:active {
+            transform: scale(0.98); /* Subtle press effect */
+        }
+
+        .focus-mode-toggle-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .focus-mode-toggle-btn.active svg {
+            stroke: white;
         }
 
         .tab {
-            background: #e8e8e8;
+            background: var(--tab-bg);
             border: none;
-            border-right: 1px solid #d0d0d0;
-            padding: 8px 16px;
+            border-right: 1px solid var(--tab-border);
+            padding: 14px 16px; /* Increased vertical padding for breathing room */
             cursor: pointer;
             font-size: 13px;
-            color: #666;
+            color: var(--text-secondary);
             white-space: nowrap;
             min-width: 120px;
             max-width: 200px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: background 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
+            border-radius: 6px 6px 0 0; /* Consistent rounded corners */
+            font-weight: 450; /* Softer font weight */
+            user-select: none; /* Prevent text selection during drag */
+        }
+
+        /* Drag and drop states */
+        .tab.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+            z-index: 1000;
+            cursor: grabbing;
+        }
+
+        .tab.drag-over {
+            border-left: 3px solid var(--divider-active);
+            padding-left: 13px; /* Compensate for border */
+        }
+
+        .tab:not(.dragging):not(.drag-over) {
+            cursor: grab;
+        }
+
+        .tab:active:not(.dragging) {
+            cursor: grabbing;
         }
 
         .tab.active {
-            background: #fefefe;
-            color: #333;
-            border-bottom: 1px solid #fefefe;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--bg-primary);
             margin-bottom: -1px;
+            box-shadow: 0 2px 8px var(--shadow-light); /* Elevate active tab */
+            z-index: 1;
+            position: relative;
+        }
+
+        .tab.active::before {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-gradient); /* Subtle blue gradient indicator */
+            border-radius: 1px 1px 0 0;
         }
 
         .tab:hover:not(.active) {
-            background: #ddd;
+            background: var(--tab-bg-hover);
+            transform: translateY(-1px); /* Subtle lift on hover */
+            box-shadow: 0 2px 8px var(--shadow-light);
         }
 
         .tab-title {
@@ -135,20 +513,27 @@
 
         .tab-close {
             margin-left: 8px;
-            color: #999;
+            color: var(--text-muted);
             font-size: 12px;
             width: 16px;
             height: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 2px;
-            transition: all 0.2s;
+            border-radius: 6px; /* Consistent rounded corners */
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.7;
         }
 
         .tab-close:hover {
-            background: #ccc;
-            color: #333;
+            background: var(--button-hover);
+            color: var(--text-primary);
+            opacity: 1;
+            transform: scale(1.1); /* Subtle scale on hover */
+        }
+
+        .tab-close:active {
+            transform: scale(0.9); /* Press effect */
         }
 
         .tab.unsaved .tab-title::after {
@@ -160,64 +545,147 @@
             flex: 1;
             display: flex;
             overflow: hidden;
+            padding: 8px; /* Consistent 8px grid */
         }
 
         .editor-container {
             flex: 1;
             display: flex;
             position: relative;
+            border-radius: 6px; /* Consistent rounded corners */
+            box-shadow: 0 4px 12px var(--shadow-light); /* Float the editor area with soft shadow */
+            overflow: hidden;
+            background: var(--bg-primary);
         }
 
         .editor {
             flex: 1;
             border: none;
             outline: none;
-            padding: 20px;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            padding: 36px; /* More generous padding */
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
-            line-height: 1.6;
+            line-height: 1.8; /* Increased for better readability */
             resize: none;
-            background: #fefefe;
-            color: #333;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            box-shadow: inset 0 1px 3px var(--shadow-light); /* Gentle inset shadow for depth */
+            border-radius: 0 0 0 6px; /* Consistent rounded corners */
+            transition: box-shadow 0.2s ease;
+        }
+
+        .editor:focus {
+            box-shadow: inset 0 1px 3px var(--shadow-light), 0 0 0 2px var(--focus-ring); /* Subtle glow when focused */
         }
 
         .divider {
             width: 4px;
-            background: #e0e0e0;
+            background: var(--divider-bg);
             cursor: col-resize;
             flex-shrink: 0;
-            transition: background 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: var(--border-color);
+            border-radius: 1px;
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
         }
 
         .divider:hover {
-            background: #ccc;
+            background: var(--divider-hover);
+        }
+
+        .divider:hover::before {
+            opacity: 1;
         }
 
         .divider.dragging {
-            background: #007acc;
+            background: var(--divider-active);
         }
 
         .preview {
             flex: 1;
-            padding: 20px;
-            background: #fafafa;
+            padding: 36px; /* More generous padding */
+            background: var(--bg-tertiary);
             overflow-y: auto;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            border-radius: 0 6px 6px 0; /* Consistent rounded corners */
+            line-height: 1.65; /* Tighter line spacing for better text flow */
+        }
+
+        /* Custom scrollbars for all elements */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 4px;
+            border: 1px solid var(--bg-secondary);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+            border-color: var(--border-color);
+            cursor: pointer;
+        }
+
+        ::-webkit-scrollbar-thumb:active {
+            background: var(--text-primary);
+            cursor: grabbing;
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: var(--bg-secondary);
+        }
+
+        /* Firefox scrollbar styling */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-muted) var(--bg-secondary);
+        }
+
+        /* Specific styling for tabs horizontal scrollbar */
+        .tabs-list {
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-muted) var(--bg-secondary);
         }
 
         .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6 {
-            margin: 1em 0 0.5em 0;
-            color: #222;
+            margin: 1.2em 0 0.6em 0; /* Better breathing room */
+            color: var(--text-primary);
+            font-weight: 450; /* Softer font weight */
+            letter-spacing: -0.02em; /* Refined letter spacing */
         }
 
-        .preview h1 { font-size: 1.8em; }
-        .preview h2 { font-size: 1.5em; }
-        .preview h3 { font-size: 1.3em; }
-        .preview h4 { font-size: 1.1em; }
+        .preview h1 { font-size: 1.8em; font-weight: 600; }
+        .preview h2 { font-size: 1.5em; font-weight: 500; }
+        .preview h3 { font-size: 1.3em; font-weight: 500; }
+        .preview h4 { font-size: 1.1em; font-weight: 450; }
 
         .preview p {
             margin: 0.8em 0;
             line-height: 1.6;
+            color: var(--text-primary);
         }
 
         .preview code {
@@ -253,8 +721,26 @@
             padding-left: 2em;
         }
 
+        .preview ol {
+            list-style-type: decimal;
+        }
+
+        .preview ul {
+            list-style-type: disc;
+        }
+
+        /* Nested bullet styles */
+        .preview ul ul {
+            list-style-type: circle;
+        }
+
+        .preview ul ul ul {
+            list-style-type: square;
+        }
+
         .preview li {
             margin: 0.3em 0;
+            color: var(--text-primary);
         }
 
         .preview table {
@@ -264,26 +750,35 @@
         }
 
         .preview th, .preview td {
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             padding: 8px 12px;
             text-align: left;
+            color: var(--text-primary);
         }
 
         .preview th {
-            background: #f5f5f5;
+            background: var(--bg-secondary);
             font-weight: 600;
+            color: var(--text-primary);
         }
 
         /* Advanced markdown features */
         .preview .footnote-ref {
             font-size: 0.8em;
             vertical-align: super;
-            color: #007acc;
+            color: var(--link-color);
             text-decoration: none;
+            font-weight: bold;
+            padding: 1px 2px;
+            border-radius: 2px;
+            background: var(--code-bg);
         }
 
         .preview .footnote-ref:hover {
             text-decoration: underline;
+            color: var(--link-hover-color);
+            background: var(--link-color);
+            color: var(--bg-primary);
         }
 
         .preview .footnotes {
@@ -295,15 +790,20 @@
 
         .preview .footnote-item {
             margin: 0.5em 0;
-            padding-left: 1.5em;
+            padding-left: 2.5em;
             position: relative;
+            color: var(--text-primary);
+            line-height: 1.5;
         }
 
         .preview .footnote-item::before {
             content: attr(data-footnote) ". ";
             position: absolute;
             left: 0;
-            color: #666;
+            top: 0;
+            color: var(--text-secondary);
+            font-weight: bold;
+            min-width: 2em;
         }
 
         .preview dl {
@@ -314,6 +814,7 @@
             font-weight: bold;
             margin-top: 1em;
             margin-bottom: 0.2em;
+            color: var(--text-primary);
         }
 
         .preview dd {
@@ -340,6 +841,10 @@
             margin: 0;
         }
 
+        .preview .task-list-item {
+            color: var(--text-primary);
+        }
+
         .preview .task-list-item.completed {
             text-decoration: line-through;
             color: var(--text-muted);
@@ -351,6 +856,7 @@
             padding: 2px 4px;
             border-radius: 2px;
             font-family: 'Times New Roman', serif;
+            color: var(--text-primary);
         }
 
         .preview .math-block {
@@ -361,60 +867,189 @@
             text-align: center;
             font-family: 'Times New Roman', serif;
             font-size: 1.1em;
+            color: var(--text-primary);
         }
 
         /* Reference links styling */
         .preview .ref-link {
-            color: #007acc;
-            text-decoration: none;
+            color: var(--link-color);
+            text-decoration: underline;
+            text-decoration-style: dotted;
         }
 
         .preview .ref-link:hover {
             text-decoration: underline;
+            text-decoration-style: solid;
+            color: var(--link-hover-color);
+        }
+
+        /* General link styling */
+        .preview a {
+            color: var(--link-color);
+            text-decoration: underline;
+        }
+
+        .preview a:hover {
+            color: var(--link-hover-color);
+            text-decoration: underline;
+        }
+
+        /* Horizontal rule styling */
+        .preview hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 2em 0;
+        }
+
+        /* Image styling */
+        .preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 1em 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .preview img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        /* Dark mode image adjustments */
+        [data-theme="dark"] .preview img {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        [data-theme="dark"] .preview img:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+
+        /* Image loading placeholder */
+        .preview .image-placeholder {
+            position: relative;
+            background: var(--code-bg);
+            border: 2px dashed var(--border-color);
+            opacity: 0.7;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview .image-placeholder::before {
+            content: "🖼️ Loading image...";
+            color: var(--text-muted);
+            font-size: 0.9em;
+            position: absolute;
+            z-index: 1;
+        }
+
+        /* Image error styling */
+        .preview .image-error {
+            background: #fee;
+            border: 2px dashed #fcc;
+            border-radius: 4px;
+            padding: 1em;
+            text-align: center;
+            color: #c66;
+            font-style: italic;
+            margin: 1em 0;
+        }
+
+        [data-theme="dark"] .preview .image-error {
+            background: #433;
+            border-color: #655;
+            color: #faa;
         }
 
 
 
         .status-bar {
-            background: #f8f8f8;
-            border-top: 1px solid #e0e0e0;
-            padding: 4px 12px;
+            background: linear-gradient(to bottom, var(--status-bg), var(--border-light)); /* Subtle gradient background */
+            border-top: 1px solid var(--border-color);
+            padding: 8px 16px; /* Better spacing using 8px grid */
             font-size: 11px;
-            color: #888;
+            color: var(--text-muted);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); /* Subtle inner shadow */
+            border-radius: 0 0 6px 6px; /* Consistent rounded corners */
         }
 
         .autosave-indicator {
-            color: #28a745;
+            color: var(--success-green); /* Softer success green */
+            font-weight: 450;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .autosave-indicator::before {
+            content: "●"; /* Icon indicator instead of just text */
+            font-size: 8px;
         }
 
         .word-count {
-            color: #666;
+            color: var(--text-secondary);
+            font-weight: 450;
+        }
+
+        .file-location {
+            color: var(--text-secondary);
+            font-weight: 400;
+            font-size: 10px;
+            opacity: 0.8;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 8px;
+            position: relative;
+        }
+
+        .file-location::before {
+            content: "•";
+            margin-right: 6px;
+            opacity: 0.7;
+        }
+
+        .file-location:empty {
+            display: none;
         }
 
         /* CSS Variables for theming */
         :root {
-            --bg-primary: #fefefe;
-            --bg-secondary: #f5f5f5;
-            --bg-tertiary: #fafafa;
-            --border-color: #e0e0e0;
-            --text-primary: #333;
-            --text-secondary: #666;
-            --text-muted: #999;
-            --tab-bg: #e8e8e8;
-            --tab-bg-hover: #ddd;
-            --tab-border: #d0d0d0;
-            --button-hover: #e8e8e8;
-            --divider-bg: #e0e0e0;
-            --divider-hover: #ccc;
+            --bg-primary: #fdfdfc; /* Warmer white */
+            --bg-secondary: #f8f7f4; /* Warmer light gray */
+            --bg-tertiary: #fcfcfb; /* Warmer tertiary */
+            --border-color: #e8e6e3; /* Warmer gray borders */
+            --border-light: #f0efec; /* Subtle borders */
+            --text-primary: #1a1918; /* Warmer black */
+            --text-secondary: #6b6a68; /* Warmer medium gray */
+            --text-muted: #a5a4a2; /* Warmer light gray */
+            --tab-bg: #eeede9; /* Warmer tab background */
+            --tab-bg-hover: #e4e3df; /* Warmer hover */
+            --tab-border: #dddbd6; /* Warmer tab borders */
+            --button-hover: #f0efec; /* Refined hover */
+            --divider-bg: #e8e6e3;
+            --divider-hover: #d4d2ce;
             --divider-active: #007acc;
-            --code-bg: #f0f0f0;
-            --pre-bg: #f5f5f5;
-            --blockquote-border: #ddd;
-            --status-bg: #f8f8f8;
+            --code-bg: #f6f5f2; /* Warmer code background */
+            --pre-bg: #f8f7f4; /* Warmer pre background */
+            --blockquote-border: #e0dedb; /* Warmer blockquote */
+            --status-bg: #f9f8f5; /* Warmer status bar */
+            --link-color: #0066cc;
+            --link-hover-color: #004499;
+            --success-green: #34c759; /* Softer success green */
+            --shadow-light: rgba(26, 25, 24, 0.08);
+            --shadow-medium: rgba(26, 25, 24, 0.12);
+            --shadow-heavy: rgba(26, 25, 24, 0.16);
+            --accent-gradient: linear-gradient(135deg, #007acc, #0099ff); /* Subtle blue gradient */
+            --focus-ring: rgba(0, 122, 204, 0.15);
         }
 
         /* Dark mode variables */
@@ -437,6 +1072,8 @@
             --pre-bg: #222;
             --blockquote-border: #555;
             --status-bg: #2a2a2a;
+            --link-color: #7db3ff;
+            --link-hover-color: #a6ccff;
         }
 
         /* Apply variables to existing styles */
@@ -537,7 +1174,7 @@
 
         /* Custom Titlebar */
         .titlebar {
-            height: 30px;
+            height: 32px; /* Slightly taller for better proportions */
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
             display: flex;
@@ -545,6 +1182,7 @@
             -webkit-app-region: drag;
             user-select: none;
             flex-shrink: 0;
+            box-shadow: 0 1px 2px var(--shadow-light); /* Subtle depth */
         }
 
         .titlebar-content {
@@ -557,8 +1195,9 @@
         .app-title {
             font-size: 12px;
             color: var(--text-secondary);
-            margin-left: 12px;
-            font-weight: 500;
+            margin-left: 16px; /* Better spacing using 8px grid */
+            font-weight: 450;
+            letter-spacing: -0.01em;
         }
 
         /* Ensure app title is visible in dark mode */
@@ -579,16 +1218,24 @@
         .menu-button {
             background: none;
             border: none;
-            padding: 6px 12px;
+            padding: 8px 16px; /* Better spacing using 8px grid */
             font-size: 12px;
             color: var(--text-secondary);
             cursor: pointer;
-            height: 30px;
-            transition: background 0.1s;
+            height: 32px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px; /* Consistent rounded corners */
+            font-weight: 450;
         }
 
         .menu-button:hover {
             background: var(--button-hover);
+            color: var(--text-primary);
+            transform: scale(1.02); /* Subtle scale effect */
+        }
+
+        .menu-button:active {
+            transform: scale(0.98);
         }
 
         .menu-dropdown {
@@ -635,8 +1282,8 @@
         }
 
         .window-control {
-            width: 46px;
-            height: 30px;
+            width: 48px; /* Slightly wider for better proportions */
+            height: 32px;
             background: none;
             border: none;
             color: var(--text-secondary);
@@ -645,11 +1292,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.1s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .window-control:hover {
             background: var(--button-hover);
+            color: var(--text-primary);
+        }
+
+        .window-control:active {
+            transform: scale(0.95);
         }
 
         .window-control.close:hover {
@@ -711,8 +1363,15 @@
                         <span>Save Session</span>
                         <span class="menu-shortcut">Ctrl+Shift+S</span>
                     </div>
-                    
-                    
+                    <div class="menu-item" onclick="toggleFocusMode(); document.getElementById('fileMenu').style.display = 'none';">
+                        <span>Focus Mode</span>
+                        <span class="menu-shortcut">F11</span>
+                    </div>
+                    <div class="menu-separator"></div>
+                    <div class="menu-item" onclick="openFindReplace(); document.getElementById('fileMenu').style.display = 'none';">
+                        <span>Find & Replace</span>
+                        <span class="menu-shortcut">Ctrl+F</span>
+                    </div>
                 </div>
             </div>
             <div class="window-controls">
@@ -727,8 +1386,14 @@
         <div class="tabs-list" id="tabsContainer">
         </div>
         <div class="tab-controls">
-            <button class="preview-toggle-btn" onclick="togglePreview()" title="Toggle Preview">🔍</button>
+            <button class="preview-toggle-btn" onclick="togglePreview()" title="Toggle Preview (Ctrl+P)">🔍</button>
             <button class="dark-mode-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
+            <button class="focus-mode-toggle-btn" onclick="toggleFocusMode()" title="Focus Mode (F11)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M8 21h3a2 2 0 0 0 2-2v-3m0-8v3a2 2 0 0 1-2 2H8"/>
+                    <rect x="9" y="9" width="6" height="6" rx="1"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -742,7 +1407,38 @@
 
     <div class="status-bar">
         <div class="autosave-indicator" id="autosaveStatus">Auto-saved</div>
+        <div class="file-location" id="fileLocation"></div>
         <div class="word-count" id="wordCount">0 words</div>
+    </div>
+
+    <!-- Focus Mode Exit Button -->
+    <button class="focus-exit-btn" onclick="toggleFocusMode()" id="focusExitBtn">
+        Exit Focus Mode (F11)
+    </button>
+
+    <!-- Find/Replace Panel -->
+    <div class="find-replace-panel" id="findReplacePanel">
+        <div class="find-replace-header">
+            <h3 class="find-replace-title">Find & Replace</h3>
+            <button class="find-replace-close" onclick="closeFindReplace()">×</button>
+        </div>
+        
+        <div class="find-input-group">
+            <input type="text" class="find-input" id="findInput" placeholder="Find..." />
+        </div>
+        
+        <div class="find-input-group">
+            <input type="text" class="replace-input" id="replaceInput" placeholder="Replace with..." />
+        </div>
+        
+        <div class="find-actions">
+            <button class="find-btn" onclick="findPrevious()">↑ Previous</button>
+            <button class="find-btn" onclick="findNext()">↓ Next</button>
+            <button class="find-btn" onclick="replaceOne()">Replace</button>
+            <button class="find-btn primary" onclick="replaceAll()">Replace All</button>
+        </div>
+        
+        <div class="find-stats" id="findStats"></div>
     </div>
 
     <script>
@@ -758,6 +1454,98 @@
         let activeTabId = null;
         let viewMode = 'split'; // 'split', 'source', 'preview'
         let autosaveTimeout = null;
+        let previewUpdateTimeout = null;
+        let focusMode = false; // Focus mode state
+        
+        // Find/Replace state
+        let findReplaceOpen = false;
+        let currentSearchTerm = '';
+        let currentMatches = [];
+        let currentMatchIndex = -1;
+        let highlightTimeout = null;
+
+        // Smart preview update that handles images intelligently
+        function smartUpdatePreview() {
+            const currentContent = document.getElementById('editor').value;
+            
+            // If user just completed an image syntax (ends with ) and contains ![), update immediately
+            if (currentContent.endsWith(')') && currentContent.includes('![')) {
+                updatePreview();
+                return;
+            }
+            
+            // Otherwise use debouncing for text-only changes to prevent flicker
+            clearTimeout(previewUpdateTimeout);
+            previewUpdateTimeout = setTimeout(() => {
+                updatePreview();
+            }, 150);
+        }
+
+        // Image processing helper functions
+        function getCurrentDocumentPath() {
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            return currentTab && currentTab.filePath ? currentTab.filePath : null;
+        }
+
+        function resolveImagePath(src, documentPath) {
+            // Web images (http/https)
+            if (src.startsWith('http://') || src.startsWith('https://')) {
+                return src;
+            }
+            
+            // Data URLs (base64 embedded images)
+            if (src.startsWith('data:')) {
+                return src;
+            }
+            
+            // Absolute local paths
+            if (src.match(/^[A-Za-z]:[/\\]/) || src.startsWith('/')) {
+                return 'file://' + src.replace(/\\/g, '/');
+            }
+            
+            // Relative paths - resolve relative to document location
+            if (documentPath && ipcRenderer) {
+                try {
+                    const path = require('path');
+                    const docDir = path.dirname(documentPath);
+                    const resolvedPath = path.resolve(docDir, src);
+                    return 'file://' + resolvedPath.replace(/\\/g, '/');
+                } catch (error) {
+                    return src; // Fallback to original path
+                }
+            }
+            
+            // Fallback: try to resolve relative to current working directory
+            if (ipcRenderer && src.startsWith('./')) {
+                try {
+                    const path = require('path');
+                    const cwd = process.cwd();
+                    const resolvedPath = path.resolve(cwd, src);
+                    return 'file://' + resolvedPath.replace(/\\/g, '/');
+                } catch (error) {
+                    // Silent fallback
+                }
+            }
+            
+            return src;
+        }
+
+        function generateImageHTML(alt, src, documentPath) {
+            const resolvedSrc = resolveImagePath(src, documentPath);
+            const altText = alt || 'Image';
+            
+            // Escape HTML attributes to prevent injection
+            const escapedAlt = altText.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const escapedSrc = src.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            
+            // Create image with error handling using a more robust approach
+            return `<img src="${resolvedSrc}" alt="${escapedAlt}" 
+                         onload="this.classList.remove('image-placeholder')"
+                         onerror="this.style.display='none'; this.nextSibling.style.display='block';"
+                         class="image-placeholder" 
+                         title="${escapedAlt}" />
+                    <div class="image-error" style="display:none;">❌ Failed to load image: ${escapedAlt}<br><small>${escapedSrc}</small></div>`;
+        }
 
         // Session management functions - defined early to ensure availability
         async function saveSession() {
@@ -843,12 +1631,13 @@
             
             // Don't create a tab here - loadSession will handle it
             updatePreview();
+            updateFileLocation();
             
             // Set up auto-save
             document.getElementById('editor').addEventListener('input', () => {
                 handleContentChange();
                 updateWordCount();
-                updatePreview();
+                smartUpdatePreview(); // Use smart update to handle images intelligently
             });
 
             // Listen for menu commands (only if we have ipcRenderer)
@@ -871,10 +1660,12 @@
                     if (currentTab) {
                         currentTab.content = data.content;
                         currentTab.title = data.fileName;
-                        currentTab.filePath = null;
+                        currentTab.filePath = data.filePath; // Set the actual file path
+                        currentTab.unsaved = false; // Mark as saved since we just loaded it
                         document.getElementById('editor').value = data.content;
                         updatePreview();
                         updateWordCount();
+                        updateFileLocation(); // Update file location display
                         renderTabs();
                     }
                 });
@@ -907,20 +1698,34 @@
             const container = document.getElementById('tabsContainer');
             container.innerHTML = '';
             
-            tabs.forEach(tab => {
+            tabs.forEach((tab, index) => {
                 const tabElement = document.createElement('div');
                 tabElement.className = 'tab' + 
                     (tab.id === activeTabId ? ' active' : '') +
                     (tab.unsaved ? ' unsaved' : '');
+                tabElement.draggable = true;
+                tabElement.setAttribute('data-tab-id', tab.id);
+                tabElement.setAttribute('data-tab-index', index);
                 tabElement.innerHTML = `
                     <span class="tab-title">${tab.title}</span>
                     <span class="tab-close" onclick="closeTab('${tab.id}', event)">×</span>
                 `;
+                
+                // Click handler
                 tabElement.onclick = (e) => {
                     if (!e.target.classList.contains('tab-close')) {
                         switchToTab(tab.id);
                     }
                 };
+
+                // Drag event handlers
+                tabElement.addEventListener('dragstart', handleTabDragStart);
+                tabElement.addEventListener('dragover', handleTabDragOver);
+                tabElement.addEventListener('drop', handleTabDrop);
+                tabElement.addEventListener('dragend', handleTabDragEnd);
+                tabElement.addEventListener('dragenter', handleTabDragEnter);
+                tabElement.addEventListener('dragleave', handleTabDragLeave);
+                
                 container.appendChild(tabElement);
             });
 
@@ -931,6 +1736,67 @@
             newTabBtn.onclick = createNewTab;
             newTabBtn.title = 'New Tab';
             container.appendChild(newTabBtn);
+        }
+
+        // Tab drag and drop handlers
+        let draggedTabId = null;
+        let draggedTabIndex = null;
+
+        function handleTabDragStart(e) {
+            draggedTabId = e.target.getAttribute('data-tab-id');
+            draggedTabIndex = parseInt(e.target.getAttribute('data-tab-index'));
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.outerHTML);
+        }
+
+        function handleTabDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleTabDragEnter(e) {
+            e.preventDefault();
+            if (e.target.classList.contains('tab') && !e.target.classList.contains('dragging')) {
+                e.target.classList.add('drag-over');
+            }
+        }
+
+        function handleTabDragLeave(e) {
+            if (e.target.classList.contains('tab')) {
+                e.target.classList.remove('drag-over');
+            }
+        }
+
+        function handleTabDrop(e) {
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+            
+            if (e.target.classList.contains('tab') && !e.target.classList.contains('dragging')) {
+                const targetTabIndex = parseInt(e.target.getAttribute('data-tab-index'));
+                
+                if (draggedTabIndex !== null && draggedTabIndex !== targetTabIndex) {
+                    // Reorder tabs array
+                    const draggedTab = tabs[draggedTabIndex];
+                    tabs.splice(draggedTabIndex, 1);
+                    tabs.splice(targetTabIndex, 0, draggedTab);
+                    
+                    // Re-render tabs to update positions
+                    renderTabs();
+                }
+            }
+        }
+
+        function handleTabDragEnd(e) {
+            e.target.classList.remove('dragging');
+            
+            // Clear all drag-over states
+            document.querySelectorAll('.tab.drag-over').forEach(tab => {
+                tab.classList.remove('drag-over');
+            });
+            
+            draggedTabId = null;
+            draggedTabIndex = null;
         }
 
         function switchToTab(tabId) {
@@ -949,6 +1815,7 @@
                 document.getElementById('editor').value = tab.content;
                 updatePreview();
                 updateWordCount();
+                updateFileLocation(); // Update file location display
             }
             
             renderTabs();
@@ -969,6 +1836,7 @@
                 document.getElementById('editor').value = '';
                 updatePreview();
                 updateWordCount();
+                updateFileLocation(); // Update file location display
                 renderTabs();
                 return;
             }
@@ -1037,6 +1905,7 @@
                 if (result.success) {
                     currentTab.unsaved = false;
                     updateTabTitle(activeTabId, currentTab.title, false);
+                    updateFileLocation(); // Update file location display
                 }
             } else {
                 // Save as new file
@@ -1066,6 +1935,7 @@
                     const path = require('path');
                     currentTab.title = path.basename(result.filePath, '.md');
                     updateTabTitle(activeTabId, currentTab.title, false);
+                    updateFileLocation(); // Update file location display
                 }
             }
         }
@@ -1104,10 +1974,14 @@
             const content = document.getElementById('editor').value;
             const preview = document.getElementById('preview');
             
+            // Line break processing enabled
+            
             if (!content.trim()) {
                 preview.innerHTML = '<p style="color: #999; font-style: italic;">Preview will appear here...</p>';
                 return;
             }
+            
+
             
             // Store footnotes and references for later processing
             const footnotes = {};
@@ -1124,6 +1998,17 @@
             html = html.replace(/^\[([^\]]+)\]:\s*(.+?)(?:\s+"([^"]*)")?$/gm, (match, id, url, title) => {
                 references[id] = { url: url.trim(), title: title || '' };
                 return '';
+            });
+            
+            // Process reference-style links EARLY (before line processing)
+            html = html.replace(/\[([^\]]+)\]\[([^\]]*)\]/g, (match, text, ref) => {
+                const refKey = ref || text;
+                const reference = references[refKey];
+                if (reference) {
+                    const title = reference.title ? ` title="${reference.title}"` : '';
+                    return `<a href="${reference.url}" class="ref-link"${title} target="_blank">${text}</a>`;
+                }
+                return match;
             });
             
             // Process escape characters (before other processing)
@@ -1172,22 +2057,49 @@
             // Split into lines for processing
             const lines = html.split('\n');
             const processedLines = [];
-            let inList = false;
             let inDefinitionList = false;
-            let inTaskList = false;
             let inBlockquote = false;
-            let listType = 'ul';
+            
+            // Enhanced nested list tracking
+            let listStack = []; // Stack of {type: 'ul'|'ol'|'task', level: number}
+            let currentListLevel = -1;
+            
+            // Process lines
             
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i];
                 
+                // Process each line for markdown conversion
+                
+                // Helper function to close lists down to a specific level
+                function closeListsToLevel(targetLevel) {
+                    while (listStack.length > 0 && listStack[listStack.length - 1].level > targetLevel) {
+                        const lastList = listStack.pop();
+                        const closeTag = lastList.type === 'ol' ? '</ol>' : '</ul>';
+                        processedLines.push(closeTag);
+                    }
+                    currentListLevel = listStack.length > 0 ? listStack[listStack.length - 1].level : -1;
+                }
+                
+                // Helper function to open a new list
+                function openList(type, level, className = '') {
+                    const classAttr = className ? ` class="${className}"` : '';
+                    const openTag = type === 'ol' ? `<ol${classAttr}>` : `<ul${classAttr}>`;
+                    processedLines.push(openTag);
+                    listStack.push({type, level});
+                    currentListLevel = level;
+                }
+                
+                // Helper function to get indentation level (spaces/tabs)
+                function getIndentLevel(line) {
+                    const match = line.match(/^(\s*)/);
+                    const spaces = match ? match[1] : '';
+                    return Math.floor(spaces.length / 2); // 2 spaces = 1 level
+                }
+
                 // Headers
                 if (line.match(/^#{1,6}\s/)) {
-                    if (inList) {
-                        processedLines.push(`</${listType}>`);
-                        inList = false;
-                        inTaskList = false;
-                    }
+                    closeListsToLevel(-1); // Close all lists
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
@@ -1200,105 +2112,114 @@
                     const text = line.replace(/^#+\s*/, '');
                     line = `<h${level}>${text}</h${level}>`;
                 }
-                // Definition lists
-                else if (line.match(/^([^:\n]+)\n?\s*$/)) {
-                    const nextLine = i + 1 < lines.length ? lines[i + 1] : '';
-                    if (nextLine.match(/^:\s+/)) {
-                        if (inList) {
-                            processedLines.push(`</${listType}>`);
-                            inList = false;
-                            inTaskList = false;
-                        }
-                        if (inBlockquote) {
-                            processedLines.push('</blockquote>');
-                            inBlockquote = false;
-                        }
-                        if (!inDefinitionList) {
-                            processedLines.push('<dl>');
-                            inDefinitionList = true;
-                        }
-                        line = `<dt>${line.trim()}</dt>`;
+                // Task lists (FIRST!) - Now with nested support
+                else if (line.match(/^\s*-\s+\[[xX ]\]/)) {
+
+                    const indentLevel = getIndentLevel(line);
+                    
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
                     }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
+                    }
+                    
+                    // Handle nesting - close lists if we're going back to a shallower level
+                    if (indentLevel < currentListLevel) {
+                        closeListsToLevel(indentLevel);
+                    }
+                    
+                    // Open new list if needed (task lists are 'ul' type with 'task-list' class)
+                    if (listStack.length === 0 || listStack[listStack.length - 1].level < indentLevel || 
+                        (listStack[listStack.length - 1].type !== 'ul' || 
+                         !processedLines[processedLines.length - 1].includes('task-list'))) {
+                        openList('ul', indentLevel, 'task-list');
+                    }
+                    
+                    const checked = line.toLowerCase().includes('[x]');
+                    const text = line.replace(/^\s*-\s+\[[xX ]\]\s*/, '');
+                    const checkedAttr = checked ? 'checked' : '';
+                    const completedClass = checked ? ' completed' : '';
+                    line = `<li class="task-list-item${completedClass}"><input type="checkbox" ${checkedAttr} disabled> ${text}</li>`;
+                }
+                // Regular lists (SECOND!) - Now with nested support
+                else if (line.match(/^\s*[\*\-\+]\s+/) && !line.match(/^\s*-\s+\[[xX ]\]/)) {
+
+                    const indentLevel = getIndentLevel(line);
+                    
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
+                    }
+                    
+                    // Handle nesting - close lists if we're going back to a shallower level
+                    if (indentLevel < currentListLevel) {
+                        closeListsToLevel(indentLevel);
+                    }
+                    
+                    // Open new list if needed
+                    if (listStack.length === 0 || listStack[listStack.length - 1].level < indentLevel || 
+                        listStack[listStack.length - 1].type !== 'ul') {
+                        openList('ul', indentLevel);
+                    }
+                    
+                    const text = line.replace(/^\s*[\*\-\+]\s+/, '');
+                    line = `<li>${text}</li>`;
+                }
+                // Numbered lists (THIRD!) - Now with nested support
+                else if (line.match(/^\s*\d+\.\s/)) {
+                    const indentLevel = getIndentLevel(line);
+                    
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
+                    }
+                    
+                    // Handle nesting - close lists if we're going back to a shallower level
+                    if (indentLevel < currentListLevel) {
+                        closeListsToLevel(indentLevel);
+                    }
+                    
+                    // Open new list if needed
+                    if (listStack.length === 0 || listStack[listStack.length - 1].level < indentLevel || 
+                        listStack[listStack.length - 1].type !== 'ol') {
+                        openList('ol', indentLevel);
+                    }
+                    
+                    const text = line.replace(/^\s*\d+\.\s+/, '');
+                    line = `<li>${text}</li>`;
+                }
+                // Definition lists (FOURTH - after all other lists!)
+                else if (line.match(/^([^:\n]+)\n?\s*$/) && i + 1 < lines.length && lines[i + 1].match(/^:\s+/)) {
+                    closeListsToLevel(-1); // Close all lists
+                    if (inBlockquote) {
+                        processedLines.push('</blockquote>');
+                        inBlockquote = false;
+                    }
+                    if (!inDefinitionList) {
+                        processedLines.push('<dl>');
+                        inDefinitionList = true;
+                    }
+                    line = `<dt>${line.trim()}</dt>`;
                 }
                 // Definition list definitions
                 else if (line.match(/^:\s+(.+)/)) {
                     const definition = line.replace(/^:\s+/, '');
                     line = `<dd>${definition}</dd>`;
                 }
-                // Task lists (CHECK BEFORE regular lists!) - More flexible regex
-                else if (line.match(/^\s*-\s*\[[ xX]\]/)) {
-                    if (inDefinitionList) {
-                        processedLines.push('</dl>');
-                        inDefinitionList = false;
-                    }
-                    if (inBlockquote) {
-                        processedLines.push('</blockquote>');
-                        inBlockquote = false;
-                    }
-                    if (!inTaskList) {
-                        if (inList && listType !== 'ul') {
-                            processedLines.push(`</${listType}>`);
-                        }
-                        if (!inList || listType !== 'ul') {
-                            processedLines.push('<ul class="task-list">');
-                        }
-                        inList = true;
-                        inTaskList = true;
-                        listType = 'ul';
-                    }
-                    const checked = line.toLowerCase().includes('[x]');
-                    const text = line.replace(/^\s*-\s*\[[ xX]\]\s*/, '');
-                    const checkedAttr = checked ? 'checked' : '';
-                    const completedClass = checked ? ' completed' : '';
-                    line = `<li class="task-list-item${completedClass}"><input type="checkbox" ${checkedAttr} disabled> ${text}</li>`;
-                }
-                // Regular lists (AFTER task lists!) - Avoid catching task lists
-                else if (line.match(/^\s*[\*\-\+]\s/) && !line.match(/^\s*-\s*\[[ xX]\]/)) {
-                    if (inDefinitionList) {
-                        processedLines.push('</dl>');
-                        inDefinitionList = false;
-                    }
-                    if (inBlockquote) {
-                        processedLines.push('</blockquote>');
-                        inBlockquote = false;
-                    }
-                    if (!inList || inTaskList) {
-                        if (inList) processedLines.push(`</${listType}>`);
-                        processedLines.push('<ul>');
-                        inList = true;
-                        inTaskList = false;
-                        listType = 'ul';
-                    }
-                    const text = line.replace(/^\s*[\*\-\+]\s/, '');
-                    line = `<li>${text}</li>`;
-                }
-                // Numbered lists
-                else if (line.match(/^\s*\d+\.\s/)) {
-                    if (inDefinitionList) {
-                        processedLines.push('</dl>');
-                        inDefinitionList = false;
-                    }
-                    if (inBlockquote) {
-                        processedLines.push('</blockquote>');
-                        inBlockquote = false;
-                    }
-                    if (!inList || listType !== 'ol' || inTaskList) {
-                        if (inList) processedLines.push(`</${listType}>`);
-                        processedLines.push('<ol>');
-                        inList = true;
-                        inTaskList = false;
-                        listType = 'ol';
-                    }
-                    const text = line.replace(/^\s*\d+\.\s/, '');
-                    line = `<li>${text}</li>`;
-                }
                 // Blockquotes (now properly grouped)
                 else if (line.match(/^\s*>\s*(.*)$/)) {
-                    if (inList) {
-                        processedLines.push(`</${listType}>`);
-                        inList = false;
-                        inTaskList = false;
-                    }
+                    closeListsToLevel(-1); // Close all lists
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
@@ -1316,11 +2237,7 @@
                 }
                 // Horizontal rules
                 else if (line.match(/^(-{3,}|\*{3,}|_{3,})$/)) {
-                    if (inList) {
-                        processedLines.push(`</${listType}>`);
-                        inList = false;
-                        inTaskList = false;
-                    }
+                    closeListsToLevel(-1); // Close all lists
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
@@ -1331,13 +2248,9 @@
                     }
                     line = '<hr>';
                 }
-                // Regular paragraphs
+                // Regular paragraphs - collect consecutive lines
                 else if (line.trim() !== '') {
-                    if (inList) {
-                        processedLines.push(`</${listType}>`);
-                        inList = false;
-                        inTaskList = false;
-                    }
+                    closeListsToLevel(-1); // Close all lists
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
@@ -1346,18 +2259,46 @@
                         processedLines.push('</blockquote>');
                         inBlockquote = false;
                     }
+                    
                     // Don't wrap if it's already an HTML tag
                     if (!line.match(/^<[^>]+>/)) {
-                        line = `<p>${line}</p>`;
+                        // Collect consecutive non-special lines into a paragraph with line breaks
+                        const paragraphLines = [line];
+                        // Look ahead to collect consecutive regular text lines
+                        let j = i + 1;
+                        while (j < lines.length) {
+                            const nextLine = lines[j];
+                            
+                            // Stop if we hit an empty line or special markdown element
+                            if (nextLine.trim() === '' ||
+                                nextLine.match(/^#{1,6}\s/) ||
+                                nextLine.match(/^\s*[\*\-\+]\s/) ||
+                                nextLine.match(/^\s*\d+\.\s/) ||
+                                nextLine.match(/^\s*-\s+\[[xX ]\]/) ||
+                                nextLine.match(/^\s*>\s/) ||
+                                nextLine.match(/^(-{3,}|\*{3,}|_{3,})$/) ||
+                                nextLine.match(/^([^:\n]+)\n?\s*$/) && (j + 1 < lines.length && lines[j + 1].match(/^:\s+/)) ||
+                                nextLine.match(/^:\s+(.+)/) ||
+                                nextLine.match(/^<[^>]+>/)) {
+                                break;
+                            }
+                            
+                            paragraphLines.push(nextLine);
+                            j++;
+                        }
+                        
+                        // Create paragraph with line breaks
+                        if (paragraphLines.length > 1) {
+                            line = `<p>${paragraphLines.join('<br>')}</p>`;
+                            i = j - 1; // Skip the lines we've processed
+                        } else {
+                            line = `<p>${line}</p>`;
+                        }
                     }
                 }
                 // Empty lines
                 else {
-                    if (inList) {
-                        processedLines.push(`</${listType}>`);
-                        inList = false;
-                        inTaskList = false;
-                    }
+                    closeListsToLevel(-1); // Close all lists
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
@@ -1375,9 +2316,7 @@
             }
             
             // Close any open elements
-            if (inList) {
-                processedLines.push(`</${listType}>`);
-            }
+            closeListsToLevel(-1); // Close all remaining lists
             if (inDefinitionList) {
                 processedLines.push('</dl>');
             }
@@ -1408,15 +2347,11 @@
             // Footnote references
             html = html.replace(/\[\^([^\]]+)\]/g, '<sup><a href="#footnote-$1" class="footnote-ref">$1</a></sup>');
             
-            // Reference-style links
-            html = html.replace(/\[([^\]]+)\]\[([^\]]*)\]/g, (match, text, ref) => {
-                const refKey = ref || text;
-                const reference = references[refKey];
-                if (reference) {
-                    const title = reference.title ? ` title="${reference.title}"` : '';
-                    return `<a href="${reference.url}" class="ref-link"${title} target="_blank">${text}</a>`;
-                }
-                return match;
+            // Reference-style links (already processed earlier)
+            
+            // Images (process before links to avoid conflicts)
+            html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+                return generateImageHTML(alt, src, getCurrentDocumentPath());
             });
             
             // Direct links
@@ -1442,6 +2377,32 @@
             const content = document.getElementById('editor').value;
             const words = content.trim() ? content.trim().split(/\s+/).length : 0;
             document.getElementById('wordCount').textContent = `${words} words`;
+        }
+
+        function updateFileLocation() {
+            const fileLocationElement = document.getElementById('fileLocation');
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            
+            if (currentTab && currentTab.filePath) {
+                // Extract just the filename and parent directory for discreet display
+                const path = currentTab.filePath;
+                const pathParts = path.split(/[\\\/]/);
+                
+                if (pathParts.length > 1) {
+                    // Show last two parts of path (parent folder / filename)
+                    const fileName = pathParts[pathParts.length - 1];
+                    const parentDir = pathParts[pathParts.length - 2];
+                    fileLocationElement.textContent = `${parentDir}/${fileName}`;
+                } else {
+                    // Just show filename if no path
+                    fileLocationElement.textContent = pathParts[0];
+                }
+                
+                fileLocationElement.title = path; // Full path on hover
+            } else {
+                fileLocationElement.textContent = '';
+                fileLocationElement.title = '';
+            }
         }
 
         function togglePreview() {
@@ -1501,7 +2462,199 @@
             localStorage.setItem('notepad-theme', newTheme);
         }
 
-        // Load saved theme on startup
+        function toggleFocusMode() {
+            focusMode = !focusMode;
+            
+            // Toggle focus mode class on body
+            document.body.classList.toggle('focus-mode', focusMode);
+            
+            // Update button state
+            const focusBtn = document.querySelector('.focus-mode-toggle-btn');
+            focusBtn.classList.toggle('active', focusMode);
+            
+            // Focus the editor when entering focus mode
+            if (focusMode) {
+                setTimeout(() => {
+                    document.getElementById('editor').focus();
+                }, 100);
+            }
+            
+            // Save preference to localStorage
+            localStorage.setItem('notepad-focus-mode', focusMode);
+        }
+
+        // Find/Replace Functions
+        function openFindReplace() {
+            const panel = document.getElementById('findReplacePanel');
+            panel.classList.add('show');
+            findReplaceOpen = true;
+            
+            // Focus the find input and select any text
+            setTimeout(() => {
+                const findInput = document.getElementById('findInput');
+                findInput.focus();
+                findInput.select();
+            }, 100);
+            
+            // If there's selected text in the editor, use it as search term
+            const editor = document.getElementById('editor');
+            const selectedText = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+            if (selectedText) {
+                document.getElementById('findInput').value = selectedText;
+                performSearch(selectedText, true); // Highlight when pre-populating
+            }
+        }
+
+        function closeFindReplace() {
+            const panel = document.getElementById('findReplacePanel');
+            panel.classList.remove('show');
+            findReplaceOpen = false;
+            clearTimeout(highlightTimeout); // Clear any pending highlights
+            clearSearch();
+            
+            // Return focus to editor
+            document.getElementById('editor').focus();
+        }
+
+        function performSearch(searchTerm, shouldHighlight = false) {
+            const editor = document.getElementById('editor');
+            const content = editor.value;
+            currentSearchTerm = searchTerm;
+            currentMatches = [];
+            currentMatchIndex = -1;
+            
+            if (!searchTerm) {
+                updateFindStats();
+                return;
+            }
+            
+            // Find all matches (case-insensitive)
+            const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            let match;
+            while ((match = regex.exec(content)) !== null) {
+                currentMatches.push({
+                    start: match.index,
+                    end: match.index + match[0].length
+                });
+            }
+            
+            if (currentMatches.length > 0) {
+                currentMatchIndex = 0;
+                // Only highlight if explicitly requested (not during typing)
+                if (shouldHighlight) {
+                    highlightMatch();
+                }
+            }
+            
+            updateFindStats();
+        }
+
+        function highlightMatch() {
+            if (currentMatches.length === 0 || currentMatchIndex < 0) return;
+            
+            const editor = document.getElementById('editor');
+            const match = currentMatches[currentMatchIndex];
+            
+            // Select the matched text
+            editor.setSelectionRange(match.start, match.end);
+            editor.focus();
+            
+            // Scroll to the match
+            const lines = editor.value.substring(0, match.start).split('\n');
+            const lineNumber = lines.length;
+            const lineHeight = parseInt(window.getComputedStyle(editor).lineHeight);
+            const scrollTop = (lineNumber - 1) * lineHeight - editor.clientHeight / 2;
+            editor.scrollTop = Math.max(0, scrollTop);
+        }
+
+        function findNext() {
+            if (currentMatches.length === 0) return;
+            
+            currentMatchIndex = (currentMatchIndex + 1) % currentMatches.length;
+            highlightMatch();
+            updateFindStats();
+        }
+
+        function findPrevious() {
+            if (currentMatches.length === 0) return;
+            
+            currentMatchIndex = currentMatchIndex <= 0 ? currentMatches.length - 1 : currentMatchIndex - 1;
+            highlightMatch();
+            updateFindStats();
+        }
+
+        function replaceOne() {
+            if (currentMatches.length === 0 || currentMatchIndex < 0) return;
+            
+            const editor = document.getElementById('editor');
+            const replaceText = document.getElementById('replaceInput').value;
+            const match = currentMatches[currentMatchIndex];
+            
+            // Replace the current match
+            const content = editor.value;
+            const newContent = content.substring(0, match.start) + replaceText + content.substring(match.end);
+            editor.value = newContent;
+            
+            // Update tab content
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (currentTab) {
+                currentTab.content = newContent;
+                currentTab.unsaved = true;
+                renderTabs();
+            }
+            
+            // Update preview and search
+            smartUpdatePreview();
+            
+            // Recalculate matches (positions have changed)
+            const findInput = document.getElementById('findInput');
+            performSearch(findInput.value, false); // Don't highlight during recalculation
+        }
+
+        function replaceAll() {
+            if (currentMatches.length === 0) return;
+            
+            const editor = document.getElementById('editor');
+            const findText = document.getElementById('findInput').value;
+            const replaceText = document.getElementById('replaceInput').value;
+            
+            if (!findText) return;
+            
+            // Replace all occurrences
+            const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            const newContent = editor.value.replace(regex, replaceText);
+            editor.value = newContent;
+            
+            // Update tab content
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (currentTab) {
+                currentTab.content = newContent;
+                currentTab.unsaved = true;
+                renderTabs();
+            }
+            
+            // Update preview and search
+            smartUpdatePreview();
+            performSearch(findText, false); // Don't highlight during recalculation
+        }
+
+        function updateFindStats() {
+            const statsElement = document.getElementById('findStats');
+            if (currentMatches.length === 0) {
+                statsElement.textContent = currentSearchTerm ? 'No matches found' : '';
+            } else {
+                statsElement.textContent = `${currentMatchIndex + 1} of ${currentMatches.length}`;
+            }
+        }
+
+        function clearSearch() {
+            currentSearchTerm = '';
+            currentMatches = [];
+            currentMatchIndex = -1;
+            updateFindStats();
+        }
+
+        // Load saved theme and focus mode on startup
         function loadTheme() {
             const savedTheme = localStorage.getItem('notepad-theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
@@ -1511,6 +2664,19 @@
             if (darkModeBtn) {
                 darkModeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
                 darkModeBtn.title = savedTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+            }
+            
+            // Load saved focus mode state
+            const savedFocusMode = localStorage.getItem('notepad-focus-mode') === 'true';
+            if (savedFocusMode) {
+                focusMode = savedFocusMode;
+                document.body.classList.toggle('focus-mode', focusMode);
+                
+                // Update button state
+                const focusBtn = document.querySelector('.focus-mode-toggle-btn');
+                if (focusBtn) {
+                    focusBtn.classList.toggle('active', focusMode);
+                }
             }
         }
 
@@ -1662,6 +2828,34 @@
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+            // F11 for focus mode (handle separately, not with Ctrl)
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFocusMode();
+                return;
+            }
+
+            // Escape - Close Find/Replace
+            if (e.key === 'Escape' && findReplaceOpen) {
+                e.preventDefault();
+                closeFindReplace();
+                return;
+            }
+
+            // F3 - Find Next
+            if (e.key === 'F3' && !e.shiftKey) {
+                e.preventDefault();
+                findNext();
+                return;
+            }
+
+            // Shift+F3 - Find Previous
+            if (e.key === 'F3' && e.shiftKey) {
+                e.preventDefault();
+                findPrevious();
+                return;
+            }
+            
             if (e.ctrlKey || e.metaKey) {
                 switch (e.key) {
                     case 't':
@@ -1687,6 +2881,17 @@
                     case 'p':
                         e.preventDefault();
                         togglePreview();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        openFindReplace();
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        openFindReplace();
+                        setTimeout(() => {
+                            document.getElementById('replaceInput').focus();
+                        }, 150);
                         break;
                 }
             }
@@ -1776,6 +2981,51 @@
 
         // Initialize the app
         init();
+
+        // Add event listeners for find/replace inputs
+        document.getElementById('findInput').addEventListener('input', (e) => {
+            // Clear any pending highlight
+            clearTimeout(highlightTimeout);
+            
+            // Perform search without highlighting
+            performSearch(e.target.value, false);
+            
+            // If there are matches, highlight after a short delay (when user pauses typing)
+            if (currentMatches.length > 0) {
+                highlightTimeout = setTimeout(() => {
+                    if (currentMatches.length > 0 && currentMatchIndex >= 0) {
+                        highlightMatch();
+                    }
+                }, 500); // 500ms delay
+            }
+        });
+
+        document.getElementById('findInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Clear any pending highlight timeout since user is actively navigating
+                clearTimeout(highlightTimeout);
+                
+                if (currentMatches.length > 0) {
+                    if (e.shiftKey) {
+                        findPrevious();
+                    } else {
+                        findNext();
+                    }
+                }
+            }
+        });
+
+        document.getElementById('replaceInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    replaceAll();
+                } else {
+                    replaceOne();
+                }
+            }
+        });
     </script>
 </body>
 </html>

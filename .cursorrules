@@ -45,6 +45,14 @@
 - **Power User Support**: Quick access to all core functions
 - **No Conflicts**: Avoid overlapping with system or Electron defaults
 
+### Find & Replace UX Innovation
+- **Non-Intrusive Search**: Live search without cursor stealing - crucial UX pattern
+- **Delayed Highlighting**: 500ms timeout prevents typing interruption while providing feedback
+- **Smart State Management**: Separate search logic from highlighting for smooth user experience
+- **Predictable Navigation**: F3/Shift+F3 standard, Enter/Shift+Enter in inputs
+- **Auto-Population**: Selected text becomes search term - user expectation fulfilled
+- **Focus Mode Integration**: Panel hidden during distraction-free writing
+
 ## Quality Standards
 
 ### Performance Targets
@@ -67,6 +75,7 @@
 3. **Tab Switching**: Smooth transitions and state preservation
 4. **Preview Accuracy**: Markdown rendering correctness
 5. **Keyboard Shortcuts**: All combinations work as expected
+6. **Find & Replace**: Non-intrusive search, accurate text replacement, proper state cleanup
 
 ### Build Process
 - **Electron Packaging**: Windows-focused build pipeline

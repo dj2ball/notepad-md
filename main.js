@@ -14,7 +14,8 @@ function createWindow() {
     frame: false, // Remove native frame and titlebar
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webSecurity: false // Allow local file access for images
     },
     icon: path.join(__dirname, 'assets/icon.png'),
     show: false,
@@ -158,7 +159,11 @@ function createMenu() {
         { type: 'separator' },
         { role: 'reload' },
         { role: 'forcereload' },
-        { role: 'toggledevtools' },
+        { 
+          label: 'Toggle Developer Tools',
+          accelerator: 'F12',
+          role: 'toggledevtools' 
+        },
         { type: 'separator' },
         { role: 'resetzoom' },
         { role: 'zoomin' },
@@ -291,7 +296,10 @@ ipcMain.handle('load-all-tabs', async (event, filePath) => {
 });
 
 // App event handlers
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  createMenu();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -346,7 +354,7 @@ ipcMain.on('trigger-open-file', async () => {
     const filePath = result.filePaths[0];
     const content = fs.readFileSync(filePath, 'utf-8');
     const fileName = path.basename(filePath, path.extname(filePath));
-    mainWindow.webContents.send('menu-open-file', { content, fileName });
+    mainWindow.webContents.send('menu-open-file', { content, fileName, filePath });
   }
 });
 
@@ -362,6 +370,94 @@ ipcMain.on('trigger-open-session', async () => {
   if (!result.canceled && result.filePaths.length > 0) {
     const filePath = result.filePaths[0];
     mainWindow.webContents.send('menu-load-session', filePath);
+  }
+});
+
+// Image management handlers
+ipcMain.handle('create-asset-directory', async (event, documentPath) => {
+  try {
+    if (!documentPath) {
+      return { success: false, error: 'Document path required' };
+    }
+    
+    const docDir = path.dirname(documentPath);
+    const docName = path.basename(documentPath, path.extname(documentPath));
+    const assetDir = path.join(docDir, `${docName}-assets`);
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(assetDir)) {
+      fs.mkdirSync(assetDir, { recursive: true });
+    }
+    
+    return { success: true, assetDir };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-image-from-clipboard', async (event, documentPath, imageData, extension = 'png') => {
+  try {
+    if (!documentPath) {
+      return { success: false, error: 'Document must be saved first' };
+    }
+    
+    // Create asset directory
+    const assetResult = await ipcMain.handle('create-asset-directory', event, documentPath);
+    if (!assetResult.success) {
+      return assetResult;
+    }
+    
+    // Generate unique filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `pasted-image-${timestamp}.${extension}`;
+    const imagePath = path.join(assetResult.assetDir, filename);
+    
+    // Save image data
+    const buffer = Buffer.from(imageData, 'base64');
+    fs.writeFileSync(imagePath, buffer);
+    
+    // Return relative path for markdown
+    const docName = path.basename(documentPath, path.extname(documentPath));
+    const relativePath = `./${docName}-assets/${filename}`;
+    
+    return { success: true, imagePath, relativePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('copy-image-to-assets', async (event, documentPath, sourceImagePath) => {
+  try {
+    if (!documentPath) {
+      return { success: false, error: 'Document must be saved first' };
+    }
+    
+    if (!fs.existsSync(sourceImagePath)) {
+      return { success: false, error: 'Source image not found' };
+    }
+    
+    // Create asset directory
+    const assetResult = await ipcMain.handle('create-asset-directory', event, documentPath);
+    if (!assetResult.success) {
+      return assetResult;
+    }
+    
+    // Generate filename
+    const ext = path.extname(sourceImagePath);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `image-${timestamp}${ext}`;
+    const targetPath = path.join(assetResult.assetDir, filename);
+    
+    // Copy file
+    fs.copyFileSync(sourceImagePath, targetPath);
+    
+    // Return relative path for markdown
+    const docName = path.basename(documentPath, path.extname(documentPath));
+    const relativePath = `./${docName}-assets/${filename}`;
+    
+    return { success: true, imagePath: targetPath, relativePath };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 
