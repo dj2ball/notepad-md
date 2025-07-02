@@ -1,0 +1,109 @@
+{
+  "name": "notepad-md",
+  "version": "1.0.0",
+  "description": "A clean, minimal markdown editor with tabs. The simplicity you love, with the features you need.",
+  "main": "main.js",
+  "homepage": "https://github.com/yourusername/notepad-md",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:portable": "electron-builder --win portable",
+    "build:simple": "electron-packager . notepad-md --platform=win32 --arch=x64 --out=dist --overwrite --icon=assets/256.ico",
+    "package:zip": "npm run build:simple && powershell Compress-Archive -Path 'dist/notepad-md-win32-x64' -DestinationPath 'dist/Notepad.md-v1.0.0-Windows.zip' -Force",
+    "dist": "electron-builder --publish=never",
+    "pack": "electron-builder --dir"
+  },
+  "keywords": [
+    "markdown",
+    "editor",
+    "notepad",
+    "text-editor",
+    "notes",
+    "writing"
+  ],
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.yourname.notepad-md",
+    "productName": "Notepad.md",
+    "copyright": "Copyright © 2024 Your Name",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "assets/icon.png",
+      "package.json",
+      "!assets/*.ico"
+    ],
+    "extraMetadata": {
+      "main": "main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/256.ico",
+      "publisherName": "Your Name",
+      "verifyUpdateCodeSignature": false,
+      "sign": null,
+      "signDlls": false,
+      "forceCodeSigning": false,
+      "fileAssociations": [
+        {
+          "ext": "md",
+          "name": "Markdown File",
+          "description": "Markdown document",
+          "icon": "assets/256.ico",
+          "role": "Editor"
+        },
+        {
+          "ext": "npmd",
+          "name": "Notepad.md Session",
+          "description": "Notepad.md session file",
+          "icon": "assets/256.ico",
+          "role": "Editor"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Notepad.md",
+      "include": "build/installer.nsh",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.${ext}"
+    }
+  }
+}

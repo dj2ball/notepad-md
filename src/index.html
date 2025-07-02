@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notepad.md</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #fefefe;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tabs-container {
+            background: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            min-height: 36px;
+        }
+
+        .tabs-list {
+            display: flex;
+            overflow-x: auto;
+            flex: 1;
+            scrollbar-width: none; /* Firefox - hide completely */
+            -ms-overflow-style: none; /* IE/Edge - hide completely */
+        }
+
+        /* Hide scrollbar completely */
+        .tabs-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-controls {
+            display: flex;
+            align-items: center;
+            border-left: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .new-tab-btn {
+            background: none;
+            border: none;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.2s;
+            margin-left: 4px;
+            border-radius: 2px;
+        }
+
+        .new-tab-btn:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .preview-toggle-btn {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .preview-toggle-btn:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .dark-mode-toggle-btn {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .dark-mode-toggle-btn:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .tab {
+            background: #e8e8e8;
+            border: none;
+            border-right: 1px solid #d0d0d0;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #666;
+            white-space: nowrap;
+            min-width: 120px;
+            max-width: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .tab.active {
+            background: #fefefe;
+            color: #333;
+            border-bottom: 1px solid #fefefe;
+            margin-bottom: -1px;
+        }
+
+        .tab:hover:not(.active) {
+            background: #ddd;
+        }
+
+        .tab-title {
+            flex: 1;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tab-close {
+            margin-left: 8px;
+            color: #999;
+            font-size: 12px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .tab-close:hover {
+            background: #ccc;
+            color: #333;
+        }
+
+        .tab.unsaved .tab-title::after {
+            content: ' •';
+            color: #007acc;
+        }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        .editor {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            background: #fefefe;
+            color: #333;
+        }
+
+        .divider {
+            width: 4px;
+            background: #e0e0e0;
+            cursor: col-resize;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .divider:hover {
+            background: #ccc;
+        }
+
+        .divider.dragging {
+            background: #007acc;
+        }
+
+        .preview {
+            flex: 1;
+            padding: 20px;
+            background: #fafafa;
+            overflow-y: auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6 {
+            margin: 1em 0 0.5em 0;
+            color: #222;
+        }
+
+        .preview h1 { font-size: 1.8em; }
+        .preview h2 { font-size: 1.5em; }
+        .preview h3 { font-size: 1.3em; }
+        .preview h4 { font-size: 1.1em; }
+
+        .preview p {
+            margin: 0.8em 0;
+            line-height: 1.6;
+        }
+
+        .preview code {
+            background: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .preview pre {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+
+        .preview pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .preview blockquote {
+            border-left: 3px solid #ddd;
+            margin: 1em 0;
+            padding-left: 1em;
+            color: #666;
+        }
+
+        .preview ul, .preview ol {
+            margin: 0.8em 0;
+            padding-left: 2em;
+        }
+
+        .preview li {
+            margin: 0.3em 0;
+        }
+
+        .preview table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+
+        .preview th, .preview td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .preview th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+
+
+        .status-bar {
+            background: #f8f8f8;
+            border-top: 1px solid #e0e0e0;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .autosave-indicator {
+            color: #28a745;
+        }
+
+        .word-count {
+            color: #666;
+        }
+
+        /* CSS Variables for theming */
+        :root {
+            --bg-primary: #fefefe;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #fafafa;
+            --border-color: #e0e0e0;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --tab-bg: #e8e8e8;
+            --tab-bg-hover: #ddd;
+            --tab-border: #d0d0d0;
+            --button-hover: #e8e8e8;
+            --divider-bg: #e0e0e0;
+            --divider-hover: #ccc;
+            --divider-active: #007acc;
+            --code-bg: #f0f0f0;
+            --pre-bg: #f5f5f5;
+            --blockquote-border: #ddd;
+            --status-bg: #f8f8f8;
+        }
+
+        /* Dark mode variables */
+        [data-theme="dark"] {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #252525;
+            --border-color: #404040;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --tab-bg: #3c3c3c;
+            --tab-bg-hover: #4c4c4c;
+            --tab-border: #505050;
+            --button-hover: #404040;
+            --divider-bg: #404040;
+            --divider-hover: #505050;
+            --divider-active: #007acc;
+            --code-bg: #2d2d2d;
+            --pre-bg: #222;
+            --blockquote-border: #555;
+            --status-bg: #2a2a2a;
+        }
+
+        /* Apply variables to existing styles */
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .tabs-container {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-controls {
+            border-left: 1px solid var(--border-color);
+        }
+
+        .preview-toggle-btn, .dark-mode-toggle-btn {
+            color: var(--text-secondary);
+        }
+
+        .preview-toggle-btn:hover, .dark-mode-toggle-btn:hover {
+            background: var(--button-hover);
+            color: var(--text-primary);
+        }
+
+        .tab {
+            background: var(--tab-bg);
+            border-right: 1px solid var(--tab-border);
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--bg-primary);
+        }
+
+        .tab:hover:not(.active) {
+            background: var(--tab-bg-hover);
+        }
+
+        .tab-close {
+            color: var(--text-muted);
+        }
+
+        .tab-close:hover {
+            background: var(--button-hover);
+            color: var(--text-primary);
+        }
+
+        .editor {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .divider {
+            background: var(--divider-bg);
+        }
+
+        .divider:hover {
+            background: var(--divider-hover);
+        }
+
+        .divider.dragging {
+            background: var(--divider-active);
+        }
+
+        .preview {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .preview code {
+            background: var(--code-bg);
+        }
+
+        .preview pre {
+            background: var(--pre-bg);
+        }
+
+        .preview blockquote {
+            border-left: 3px solid var(--blockquote-border);
+            color: var(--text-secondary);
+        }
+
+        .status-bar {
+            background: var(--status-bg);
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        /* Dark mode icon changes */
+        .dark-mode-toggle-btn, .preview-toggle-btn {
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+            font-size: 16px;
+        }
+
+        /* Custom Titlebar */
+        .titlebar {
+            height: 30px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            -webkit-app-region: drag;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .titlebar-content {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .app-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 12px;
+            font-weight: 500;
+        }
+
+        /* Ensure app title is visible in dark mode */
+        [data-theme="dark"] .app-title {
+            color: var(--text-primary);
+        }
+
+        .titlebar-center {
+            flex: 1;
+            -webkit-app-region: drag;
+        }
+
+        .titlebar-menu {
+            -webkit-app-region: no-drag;
+            position: relative;
+        }
+
+        .menu-button {
+            background: none;
+            border: none;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            height: 30px;
+            transition: background 0.1s;
+        }
+
+        .menu-button:hover {
+            background: var(--button-hover);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 30px;
+            left: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .menu-item {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            background: var(--button-hover);
+        }
+
+        .menu-shortcut {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .window-controls {
+            display: flex;
+            -webkit-app-region: no-drag;
+        }
+
+        .window-control {
+            width: 46px;
+            height: 30px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s;
+        }
+
+        .window-control:hover {
+            background: var(--button-hover);
+        }
+
+        .window-control.close:hover {
+            background: #e81123;
+            color: white;
+        }
+
+        .window-control.maximize {
+            font-family: "Segoe MDL2 Assets", sans-serif;
+        }
+
+        .window-control.minimize {
+            font-family: "Segoe MDL2 Assets", sans-serif;
+        }
+
+        @media (max-width: 768px) {
+            .preview {
+                display: none;
+            }
+            
+            .editor {
+                flex: 1;
+        async function saveAllTabs() {
+            const result = await ipcRenderer.invoke('show-save-all-dialog', {
+                defaultPath: 'my-notes.npmd'
+            });
+
+            if (!result.canceled && result.filePath) {
+                // Save current editor content to active tab before saving all
+                if (activeTabId) {
+                    const currentTab = tabs.find(t => t.id === activeTabId);
+                    if (currentTab) {
+                        currentTab.content = document.getElementById('editor').value;
+                    }
+                }
+
+                const saveResult = await ipcRenderer.invoke('save-all-tabs', result.filePath, tabs);
+                if (saveResult.success) {
+                    // Mark all tabs as saved
+                    tabs.forEach(tab => {
+                        tab.unsaved = false;
+                        updateTabTitle(tab.id, tab.title, false);
+                    });
+                }
+            }
+        }
+
+        async function loadSessionFromFile(filePath) {
+            console.log('Loading session from file:', filePath);
+            try {
+                const result = await ipcRenderer.invoke('load-all-tabs', filePath);
+                console.log('Load result:', result);
+                
+                if (result.success && result.data && result.data.tabs) {
+                    // Clear current tabs
+                    tabs = [];
+                    activeTabId = null;
+                    
+                    // Load tabs from file
+                    tabs = result.data.tabs.map(tab => ({
+                        ...tab,
+                        unsaved: false // Mark as saved since we just loaded from file
+                    }));
+                    
+                    console.log('Loaded tabs:', tabs);
+                    
+                    if (tabs.length > 0) {
+                        renderTabs();
+                        switchToTab(tabs[0].id);
+                        console.log('Session loaded successfully with', tabs.length, 'tabs');
+                    } else {
+                        createNewTab();
+                        console.log('No tabs in session, created new tab');
+                    }
+                } else {
+                    console.error('Failed to load session:', result.error || 'Unknown error');
+                    alert('Failed to load session: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+                alert('Error loading session: ' + error.message);
+            }
+        }
+
+        async function saveSession() {
+            if (tabs.length === 0) return;
+            
+            // Save current editor content to active tab
+            if (activeTabId) {
+                const currentTab = tabs.find(t => t.id === activeTabId);
+                if (currentTab) {
+                    currentTab.content = document.getElementById('editor').value;
+                }
+            }
+
+            const sessionData = {
+                tabs: tabs,
+                activeTabId: activeTabId,
+                timestamp: Date.now()
+            };
+
+            await ipcRenderer.invoke('save-session', sessionData);
+        }
+
+        async function loadSession() {
+            const result = await ipcRenderer.invoke('load-session');
+            if (result.success && result.data && result.data.tabs && result.data.tabs.length > 0) {
+                tabs = result.data.tabs;
+                activeTabId = result.data.activeTabId;
+                
+                // Ensure activeTabId is valid
+                if (!tabs.find(t => t.id === activeTabId)) {
+                    activeTabId = tabs[0].id;
+                }
+                
+                renderTabs();
+                switchToTab(activeTabId);
+            } else {
+                // No session found, create new tab
+                createNewTab();
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-content">
+            <div class="app-title">Notepad.md</div>
+            <div class="titlebar-center"></div>
+            <div class="titlebar-menu">
+                <button class="menu-button" onclick="toggleMenu()">File</button>
+                <div class="menu-dropdown" id="fileMenu">
+                    <div class="menu-item" onclick="menuCreateNewTab()">
+                        <span>New Tab</span>
+                        <span class="menu-shortcut">Ctrl+T</span>
+                    </div>
+                    <div class="menu-item" onclick="openFile()">
+                        <span>Open File</span>
+                        <span class="menu-shortcut">Ctrl+O</span>
+                    </div>
+                    <div class="menu-item" onclick="openSession()">
+                        <span>Open Session</span>
+                        <span class="menu-shortcut">Ctrl+Shift+O</span>
+                    </div>
+                    <div class="menu-item" onclick="menuSaveCurrentTab()">
+                        <span>Save</span>
+                        <span class="menu-shortcut">Ctrl+S</span>
+                    </div>
+                    <div class="menu-item" onclick="menuSaveCurrentTabAs()">
+                        <span>Save Tab As</span>
+                        <span class="menu-shortcut">Ctrl+Alt+S</span>
+                    </div>
+                    <div class="menu-item" onclick="menuSaveAllTabs()">
+                        <span>Save Session</span>
+                        <span class="menu-shortcut">Ctrl+Shift+S</span>
+                    </div>
+                    
+                    
+                </div>
+            </div>
+            <div class="window-controls">
+                <button class="window-control minimize" onclick="minimizeWindow()" title="Minimize">−</button>
+                <button class="window-control maximize" onclick="toggleMaximize()" title="Maximize" id="maximizeBtn">□</button>
+                <button class="window-control close" onclick="closeWindow()" title="Close">×</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs-container">
+        <div class="tabs-list" id="tabsContainer">
+        </div>
+        <div class="tab-controls">
+            <button class="preview-toggle-btn" onclick="togglePreview()" title="Toggle Preview">🔍</button>
+            <button class="dark-mode-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="editor-container">
+            <textarea class="editor" id="editor" placeholder="Start typing your markdown..."></textarea>
+            <div class="divider" id="divider"></div>
+            <div class="preview" id="preview"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="autosave-indicator" id="autosaveStatus">Auto-saved</div>
+        <div class="word-count" id="wordCount">0 words</div>
+    </div>
+
+    <script>
+        let ipcRenderer;
+        try {
+            const { ipcRenderer: ipc } = require('electron');
+            ipcRenderer = ipc;
+        } catch (e) {
+            console.warn('Running in browser mode - some features will be disabled');
+        }
+        
+        let tabs = [];
+        let activeTabId = null;
+        let viewMode = 'split'; // 'split', 'source', 'preview'
+        let autosaveTimeout = null;
+
+        // Session management functions - defined early to ensure availability
+        async function saveSession() {
+            if (tabs.length === 0) return;
+            
+            // Save current editor content to active tab
+            if (activeTabId) {
+                const currentTab = tabs.find(t => t.id === activeTabId);
+                if (currentTab) {
+                    currentTab.content = document.getElementById('editor').value;
+                }
+            }
+
+            const sessionData = {
+                tabs: tabs,
+                activeTabId: activeTabId,
+                timestamp: Date.now()
+            };
+
+            await ipcRenderer.invoke('save-session', sessionData);
+        }
+
+        async function loadSessionFromFile(filePath) {
+            console.log('Loading session from file:', filePath);
+            try {
+                const result = await ipcRenderer.invoke('load-all-tabs', filePath);
+                console.log('Load result:', result);
+                
+                if (result.success && result.data && result.data.tabs) {
+                    // Clear current tabs
+                    tabs = [];
+                    activeTabId = null;
+                    
+                    // Load tabs from file
+                    tabs = result.data.tabs.map(tab => ({
+                        ...tab,
+                        unsaved: false // Mark as saved since we just loaded from file
+                    }));
+                    
+                    console.log('Loaded tabs:', tabs);
+                    
+                    if (tabs.length > 0) {
+                        renderTabs();
+                        switchToTab(tabs[0].id);
+                        console.log('Session loaded successfully with', tabs.length, 'tabs');
+                    } else {
+                        createNewTab();
+                        console.log('No tabs in session, created new tab');
+                    }
+                } else {
+                    console.error('Failed to load session:', result.error || 'Unknown error');
+                    alert('Failed to load session: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+                alert('Error loading session: ' + error.message);
+            }
+        }
+
+        async function loadSession() {
+            const result = await ipcRenderer.invoke('load-session');
+            if (result.success && result.data && result.data.tabs && result.data.tabs.length > 0) {
+                tabs = result.data.tabs;
+                activeTabId = result.data.activeTabId;
+                
+                // Ensure activeTabId is valid
+                if (!tabs.find(t => t.id === activeTabId)) {
+                    activeTabId = tabs[0].id;
+                }
+                
+                renderTabs();
+                switchToTab(activeTabId);
+            } else {
+                // No session found, create new tab
+                createNewTab();
+            }
+        }
+
+        // Initialize with first tab
+        function init() {
+            // Load saved theme
+            loadTheme();
+            
+            // Don't create a tab here - loadSession will handle it
+            updatePreview();
+            
+            // Set up auto-save
+            document.getElementById('editor').addEventListener('input', () => {
+                handleContentChange();
+                updateWordCount();
+                updatePreview();
+            });
+
+            // Listen for menu commands (only if we have ipcRenderer)
+            if (ipcRenderer) {
+                ipcRenderer.on('menu-new-tab', () => createNewTab());
+                ipcRenderer.on('menu-close-tab', () => {
+                    if (activeTabId) closeTab(activeTabId, { stopPropagation: () => {} });
+                });
+                ipcRenderer.on('menu-toggle-preview', () => togglePreview());
+                ipcRenderer.on('menu-save', () => saveCurrentTab());
+                ipcRenderer.on('menu-save-as', () => saveCurrentTabAs());
+                ipcRenderer.on('menu-save-all-tabs', () => saveAllTabs());
+                ipcRenderer.on('menu-load-session', (event, filePath) => {
+                    console.log('IPC event received: menu-load-session with filePath:', filePath);
+                    loadSessionFromFile(filePath);
+                });
+                ipcRenderer.on('menu-open-file', (event, data) => {
+                    createNewTab();
+                    const currentTab = tabs.find(t => t.id === activeTabId);
+                    if (currentTab) {
+                        currentTab.content = data.content;
+                        currentTab.title = data.fileName;
+                        currentTab.filePath = null;
+                        document.getElementById('editor').value = data.content;
+                        updatePreview();
+                        updateWordCount();
+                        renderTabs();
+                    }
+                });
+            }
+
+            // Load previous session on startup
+            loadSession();
+            
+            // Initialize draggable divider
+            initDivider();
+        }
+
+        function createNewTab() {
+            const tabId = 'tab_' + Date.now();
+            const tab = {
+                id: tabId,
+                title: 'Untitled',
+                content: '',
+                lastSaved: Date.now(),
+                unsaved: false,
+                filePath: null
+            };
+            
+            tabs.push(tab);
+            renderTabs();
+            switchToTab(tabId);
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            container.innerHTML = '';
+            
+            tabs.forEach(tab => {
+                const tabElement = document.createElement('div');
+                tabElement.className = 'tab' + 
+                    (tab.id === activeTabId ? ' active' : '') +
+                    (tab.unsaved ? ' unsaved' : '');
+                tabElement.innerHTML = `
+                    <span class="tab-title">${tab.title}</span>
+                    <span class="tab-close" onclick="closeTab('${tab.id}', event)">×</span>
+                `;
+                tabElement.onclick = (e) => {
+                    if (!e.target.classList.contains('tab-close')) {
+                        switchToTab(tab.id);
+                    }
+                };
+                container.appendChild(tabElement);
+            });
+
+            // Add the + button after the last tab
+            const newTabBtn = document.createElement('button');
+            newTabBtn.className = 'new-tab-btn';
+            newTabBtn.innerHTML = '+';
+            newTabBtn.onclick = createNewTab;
+            newTabBtn.title = 'New Tab';
+            container.appendChild(newTabBtn);
+        }
+
+        function switchToTab(tabId) {
+            // Save current tab content
+            if (activeTabId) {
+                const currentTab = tabs.find(t => t.id === activeTabId);
+                if (currentTab) {
+                    currentTab.content = document.getElementById('editor').value;
+                }
+            }
+            
+            // Switch to new tab
+            activeTabId = tabId;
+            const tab = tabs.find(t => t.id === tabId);
+            if (tab) {
+                document.getElementById('editor').value = tab.content;
+                updatePreview();
+                updateWordCount();
+            }
+            
+            renderTabs();
+        }
+
+        function closeTab(tabId, event) {
+            event.stopPropagation();
+            
+            if (tabs.length === 1) {
+                // Reset the last tab to blank instead of closing it
+                const lastTab = tabs[0];
+                lastTab.title = 'Untitled';
+                lastTab.content = '';
+                lastTab.unsaved = false;
+                lastTab.filePath = null;
+                
+                // Update the UI
+                document.getElementById('editor').value = '';
+                updatePreview();
+                updateWordCount();
+                renderTabs();
+                return;
+            }
+            
+            const tabIndex = tabs.findIndex(t => t.id === tabId);
+            tabs.splice(tabIndex, 1);
+            
+            if (activeTabId === tabId) {
+                // Switch to adjacent tab
+                const newActiveIndex = Math.min(tabIndex, tabs.length - 1);
+                switchToTab(tabs[newActiveIndex].id);
+            } else {
+                renderTabs();
+            }
+        }
+
+        function handleContentChange() {
+            const editor = document.getElementById('editor');
+            const content = editor.value;
+            
+            // Update current tab
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (currentTab) {
+                currentTab.content = content;
+                currentTab.unsaved = true;
+                
+                // Auto-generate title from first line or first few words
+                const firstLine = content.split('\n')[0].trim();
+                if (firstLine) {
+                    const title = firstLine.replace(/^#+\s*/, '').substring(0, 20);
+                    currentTab.title = title || 'Untitled';
+                } else {
+                    currentTab.title = 'Untitled';
+                }
+                
+                renderTabs();
+            }
+            
+            // Show saving indicator
+            document.getElementById('autosaveStatus').textContent = 'Saving...';
+            document.getElementById('autosaveStatus').style.color = '#ffc107';
+            
+            // Auto-save after 1 second of no typing
+            clearTimeout(autosaveTimeout);
+            autosaveTimeout = setTimeout(() => {
+                document.getElementById('autosaveStatus').textContent = 'Auto-saved';
+                document.getElementById('autosaveStatus').style.color = '#28a745';
+                if (currentTab) {
+                    currentTab.lastSaved = Date.now();
+                }
+            }, 1000);
+        }
+
+        async function saveCurrentTab() {
+            if (!ipcRenderer) {
+                alert('Save functionality requires Electron app');
+                return;
+            }
+            
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (!currentTab) return;
+
+            if (currentTab.filePath) {
+                // Save to existing file
+                const result = await ipcRenderer.invoke('save-file', currentTab.filePath, currentTab.content);
+                if (result.success) {
+                    currentTab.unsaved = false;
+                    updateTabTitle(activeTabId, currentTab.title, false);
+                }
+            } else {
+                // Save as new file
+                await saveCurrentTabAs();
+            }
+        }
+
+        async function saveCurrentTabAs() {
+            if (!ipcRenderer) {
+                alert('Save functionality requires Electron app');
+                return;
+            }
+            
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (!currentTab) return;
+
+            const result = await ipcRenderer.invoke('show-save-dialog', {
+                defaultPath: currentTab.title + '.md'
+            });
+
+            if (!result.canceled && result.filePath) {
+                const saveResult = await ipcRenderer.invoke('save-file', result.filePath, currentTab.content);
+                if (saveResult.success) {
+                    currentTab.filePath = result.filePath;
+                    currentTab.unsaved = false;
+                    // Update title to filename without extension
+                    const path = require('path');
+                    currentTab.title = path.basename(result.filePath, '.md');
+                    updateTabTitle(activeTabId, currentTab.title, false);
+                }
+            }
+        }
+
+        async function saveAllTabs() {
+            if (!ipcRenderer) {
+                alert('Save functionality requires Electron app');
+                return;
+            }
+            
+            const result = await ipcRenderer.invoke('show-save-all-dialog', {
+                defaultPath: 'my-notes.npmd'
+            });
+
+            if (!result.canceled && result.filePath) {
+                // Save current editor content to active tab before saving all
+                if (activeTabId) {
+                    const currentTab = tabs.find(t => t.id === activeTabId);
+                    if (currentTab) {
+                        currentTab.content = document.getElementById('editor').value;
+                    }
+                }
+
+                const saveResult = await ipcRenderer.invoke('save-all-tabs', result.filePath, tabs);
+                if (saveResult.success) {
+                    // Mark all tabs as saved
+                    tabs.forEach(tab => {
+                        tab.unsaved = false;
+                        updateTabTitle(tab.id, tab.title, false);
+                    });
+                }
+            }
+        }
+
+        function updatePreview() {
+            const content = document.getElementById('editor').value;
+            const preview = document.getElementById('preview');
+            
+            if (!content.trim()) {
+                preview.innerHTML = '<p style="color: #999; font-style: italic;">Preview will appear here...</p>';
+                return;
+            }
+            
+            // Enhanced markdown to HTML conversion
+            let html = content;
+            
+            // Code blocks first (to protect them from other processing)
+            html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // Split into lines for processing
+            const lines = html.split('\n');
+            const processedLines = [];
+            let inList = false;
+            
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                
+                // Headers
+                if (line.match(/^#{1,6}\s/)) {
+                    const level = line.match(/^#+/)[0].length;
+                    const text = line.replace(/^#+\s*/, '');
+                    line = `<h${level}>${text}</h${level}>`;
+                }
+                // Lists
+                else if (line.match(/^\s*[\*\-\+]\s/)) {
+                    if (!inList) {
+                        processedLines.push('<ul>');
+                        inList = true;
+                    }
+                    const text = line.replace(/^\s*[\*\-\+]\s/, '');
+                    line = `<li>${text}</li>`;
+                }
+                // Numbered lists
+                else if (line.match(/^\s*\d+\.\s/)) {
+                    if (!inList) {
+                        processedLines.push('<ol>');
+                        inList = true;
+                    }
+                    const text = line.replace(/^\s*\d+\.\s/, '');
+                    line = `<li>${text}</li>`;
+                }
+                // Blockquotes
+                else if (line.match(/^\s*>\s/)) {
+                    const text = line.replace(/^\s*>\s*/, '');
+                    line = `<blockquote>${text}</blockquote>`;
+                }
+                // Regular paragraphs
+                else if (line.trim() !== '') {
+                    if (inList) {
+                        processedLines.push(inList === 'ul' ? '</ul>' : '</ol>');
+                        inList = false;
+                    }
+                    // Don't wrap if it's already an HTML tag
+                    if (!line.match(/^<[^>]+>/)) {
+                        line = `<p>${line}</p>`;
+                    }
+                }
+                // Empty lines
+                else {
+                    if (inList) {
+                        processedLines.push('</ul>');
+                        inList = false;
+                    }
+                    line = '';
+                }
+                
+                if (line) {
+                    processedLines.push(line);
+                }
+            }
+            
+            // Close any open lists
+            if (inList) {
+                processedLines.push('</ul>');
+            }
+            
+            html = processedLines.join('\n');
+            
+            // Inline formatting
+            html = html
+                // Bold (before italic to avoid conflicts)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/__(.*?)__/g, '<strong>$1</strong>')
+                // Italic
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/_(.*?)_/g, '<em>$1</em>')
+                // Strikethrough
+                .replace(/~~(.*?)~~/g, '<del>$1</del>')
+                // Inline code
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                // Links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                // Horizontal rules
+                .replace(/^---$/gm, '<hr>')
+                .replace(/^\*\*\*$/gm, '<hr>');
+            
+            preview.innerHTML = html;
+        }
+
+        function updateWordCount() {
+            const content = document.getElementById('editor').value;
+            const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+            document.getElementById('wordCount').textContent = `${words} words`;
+        }
+
+        function togglePreview() {
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            const divider = document.getElementById('divider');
+            
+            // Cycle through: split → source → preview → split
+            switch (viewMode) {
+                case 'split':
+                    // Switch to source only
+                    viewMode = 'source';
+                    editor.style.display = 'block';
+                    editor.style.flex = '1';
+                    preview.style.display = 'none';
+                    divider.style.display = 'none';
+                    break;
+                    
+                case 'source':
+                    // Switch to preview only  
+                    viewMode = 'preview';
+                    editor.style.display = 'none';
+                    preview.style.display = 'block';
+                    preview.style.flex = '1';
+                    divider.style.display = 'none';
+                    break;
+                    
+                case 'preview':
+                    // Switch back to split view
+                    viewMode = 'split';
+                    editor.style.display = 'block';
+                    editor.style.flex = '0 0 50%';
+                    preview.style.display = 'block';
+                    preview.style.flex = '0 0 calc(50% - 2px)';
+                    divider.style.display = 'block';
+                    break;
+            }
+            
+            // Update divider state after mode change
+            if (window.updateDividerState) {
+                window.updateDividerState();
+            }
+        }
+
+        function toggleDarkMode() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            // Update button icon
+            const darkModeBtn = document.querySelector('.dark-mode-toggle-btn');
+            darkModeBtn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            darkModeBtn.title = newTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+            
+            // Save preference to localStorage
+            localStorage.setItem('notepad-theme', newTheme);
+        }
+
+        // Load saved theme on startup
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('notepad-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Update button icon to match theme
+            const darkModeBtn = document.querySelector('.dark-mode-toggle-btn');
+            if (darkModeBtn) {
+                darkModeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+                darkModeBtn.title = savedTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+            }
+        }
+
+        // Window control functions
+        async function minimizeWindow() {
+            if (ipcRenderer) {
+                await ipcRenderer.invoke('window-minimize');
+            }
+        }
+
+        async function toggleMaximize() {
+            if (ipcRenderer) {
+                await ipcRenderer.invoke('window-maximize');
+                
+                // Update maximize button icon
+                const isMaximized = await ipcRenderer.invoke('window-is-maximized');
+                const maxBtn = document.getElementById('maximizeBtn');
+                maxBtn.textContent = isMaximized ? '❐' : '□';
+                maxBtn.title = isMaximized ? 'Restore' : 'Maximize';
+            }
+        }
+
+        async function closeWindow() {
+            if (ipcRenderer) {
+                await ipcRenderer.invoke('window-close');
+            }
+        }
+
+        // Menu functions
+        function toggleMenu() {
+            const menu = document.getElementById('fileMenu');
+            if (menu.style.display === 'block') {
+                menu.style.display = 'none';
+            } else {
+                menu.style.display = 'block';
+            }
+        }
+
+        // Hide menu when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('fileMenu');
+            const menuButton = e.target.closest('.menu-button');
+            if (!menuButton && !e.target.closest('.menu-dropdown')) {
+                menu.style.display = 'none';
+            }
+        });
+
+        // File operation functions (these will call existing functions and close menu)
+        function openFile() {
+            if (ipcRenderer) {
+                ipcRenderer.send('trigger-open-file');
+            }
+            document.getElementById('fileMenu').style.display = 'none';
+        }
+
+        function openSession() {
+            if (ipcRenderer) {
+                ipcRenderer.send('trigger-open-session');
+            }
+            document.getElementById('fileMenu').style.display = 'none';
+        }
+
+        // Wrap existing functions to close menu
+        const originalSaveCurrentTab = saveCurrentTab;
+        const originalSaveCurrentTabAs = saveCurrentTabAs;
+        const originalSaveAllTabs = saveAllTabs;
+        const originalCreateNewTab = createNewTab;
+
+        function menuSaveCurrentTab() {
+            originalSaveCurrentTab();
+            document.getElementById('fileMenu').style.display = 'none';
+        }
+
+        function menuSaveCurrentTabAs() {
+            originalSaveCurrentTabAs();
+            document.getElementById('fileMenu').style.display = 'none';
+        }
+
+        function menuSaveAllTabs() {
+            originalSaveAllTabs();
+            document.getElementById('fileMenu').style.display = 'none';
+        }
+
+        function menuCreateNewTab() {
+            originalCreateNewTab();
+            document.getElementById('fileMenu').style.display = 'none';
+        }
+
+        // Draggable divider functionality
+        function initDivider() {
+            const divider = document.getElementById('divider');
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            const container = editor.parentElement;
+            
+            let isDragging = false;
+            
+            // Only allow dragging in split mode
+            function updateDividerState() {
+                if (viewMode === 'split') {
+                    divider.style.cursor = 'col-resize';
+                    divider.style.pointerEvents = 'auto';
+                } else {
+                    divider.style.cursor = 'default';
+                    divider.style.pointerEvents = 'none';
+                }
+            }
+            
+            updateDividerState();
+            
+            // Make updateDividerState available globally
+            window.updateDividerState = updateDividerState;
+            
+            divider.addEventListener('mousedown', (e) => {
+                if (viewMode !== 'split') return; // Only drag in split mode
+                
+                isDragging = true;
+                divider.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const containerRect = container.getBoundingClientRect();
+                const mouseX = e.clientX - containerRect.left;
+                const containerWidth = containerRect.width;
+                const dividerWidth = 4;
+                
+                // Calculate percentage (min 20%, max 80%)
+                let percentage = (mouseX / containerWidth) * 100;
+                percentage = Math.max(20, Math.min(80, percentage));
+                
+                editor.style.flex = `0 0 ${percentage}%`;
+                preview.style.flex = `0 0 ${100 - percentage - (dividerWidth / containerWidth * 100)}%`;
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    divider.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 't':
+                        e.preventDefault();
+                        createNewTab();
+                        break;
+                    case 'w':
+                        if (tabs.length > 1) {
+                            e.preventDefault();
+                            closeTab(activeTabId, e);
+                        }
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            saveAllTabs();
+                        } else if (e.altKey) {
+                            saveCurrentTabAs();
+                        } else {
+                            saveCurrentTab();
+                        }
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        togglePreview();
+                        break;
+                }
+            }
+        });
+
+        // Browser testing functions
+        function browserTestSaveSession() {
+            console.log('=== Browser Test: Save Session ===');
+            
+            // Save current editor content to active tab
+            if (activeTabId) {
+                const currentTab = tabs.find(t => t.id === activeTabId);
+                if (currentTab) {
+                    currentTab.content = document.getElementById('editor').value;
+                }
+            }
+            
+            const sessionData = {
+                version: '1.0.0',
+                created: new Date().toISOString(),
+                tabs: tabs
+            };
+            
+            console.log('Session data to save:', sessionData);
+            
+            // Save to localStorage for browser testing
+            localStorage.setItem('notepad-test-session', JSON.stringify(sessionData));
+            console.log('Session saved to localStorage');
+            alert('Test session saved! Check console for details.');
+        }
+        
+        function browserTestLoadSession() {
+            console.log('=== Browser Test: Load Session ===');
+            
+            try {
+                const sessionString = localStorage.getItem('notepad-test-session');
+                console.log('Raw session data from localStorage:', sessionString);
+                
+                if (!sessionString) {
+                    alert('No test session found. Save a session first!');
+                    return;
+                }
+                
+                const sessionData = JSON.parse(sessionString);
+                console.log('Parsed session data:', sessionData);
+                
+                // Simulate the loadSessionFromFile function
+                if (sessionData && sessionData.tabs) {
+                    console.log('Found', sessionData.tabs.length, 'tabs in session');
+                    
+                    // Clear current tabs
+                    tabs = [];
+                    activeTabId = null;
+                    
+                    // Load tabs from session
+                    tabs = sessionData.tabs.map(tab => ({
+                        ...tab,
+                        unsaved: false // Mark as saved since we just loaded from file
+                    }));
+                    
+                    console.log('Loaded tabs:', tabs);
+                    
+                    if (tabs.length > 0) {
+                        renderTabs();
+                        switchToTab(tabs[0].id);
+                        console.log('Session loaded successfully with', tabs.length, 'tabs');
+                        alert('Session loaded successfully! Check console for details.');
+                    } else {
+                        createNewTab();
+                        console.log('No tabs in session, created new tab');
+                        alert('No tabs found in session, created new tab');
+                    }
+                } else {
+                    console.error('Invalid session data format');
+                    alert('Invalid session data format');
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+                alert('Error loading session: ' + error.message);
+            }
+        }
+
+        // Save session when app is about to close
+        window.addEventListener('beforeunload', () => {
+            saveSession();
+        });
+
+        // Initialize the app
+        init();
+    </script>
+</body>
+</html>
