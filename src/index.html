@@ -274,6 +274,121 @@
             font-weight: 600;
         }
 
+        /* Advanced markdown features */
+        .preview .footnote-ref {
+            font-size: 0.8em;
+            vertical-align: super;
+            color: #007acc;
+            text-decoration: none;
+        }
+
+        .preview .footnote-ref:hover {
+            text-decoration: underline;
+        }
+
+        .preview .footnotes {
+            margin-top: 2em;
+            padding-top: 1em;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9em;
+        }
+
+        .preview .footnote-item {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+            position: relative;
+        }
+
+        .preview .footnote-item::before {
+            content: attr(data-footnote) ". ";
+            position: absolute;
+            left: 0;
+            color: #666;
+        }
+
+        .preview dl {
+            margin: 1em 0;
+        }
+
+        .preview dt {
+            font-weight: bold;
+            margin-top: 1em;
+            margin-bottom: 0.2em;
+        }
+
+        .preview dd {
+            margin-left: 2em;
+            margin-bottom: 0.5em;
+            color: var(--text-secondary);
+        }
+
+        .preview .task-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .preview .task-list-item {
+            margin: 0.2em 0;
+            position: relative;
+            padding-left: 1.5em;
+        }
+
+        .preview .task-list-item input[type="checkbox"] {
+            position: absolute;
+            left: 0;
+            top: 0.3em;
+            margin: 0;
+        }
+
+        .preview .task-list-item.completed {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        /* Math rendering */
+        .preview .math-inline {
+            background: var(--code-bg);
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .preview .math-block {
+            background: var(--pre-bg);
+            padding: 12px;
+            border-radius: 4px;
+            margin: 1em 0;
+            text-align: center;
+            font-family: 'Times New Roman', serif;
+            font-size: 1.1em;
+        }
+
+        /* Table alignment */
+        .preview table.table-left td:first-child,
+        .preview table.table-left th:first-child {
+            text-align: left;
+        }
+
+        .preview table.table-center td:nth-child(2),
+        .preview table.table-center th:nth-child(2) {
+            text-align: center;
+        }
+
+        .preview table.table-right td:last-child,
+        .preview table.table-right th:last-child {
+            text-align: right;
+        }
+
+        /* Reference links styling */
+        .preview .ref-link {
+            color: #007acc;
+            text-decoration: none;
+        }
+
+        .preview .ref-link:hover {
+            text-decoration: underline;
+        }
+
 
 
         .status-bar {
@@ -573,6 +688,168 @@
             
             .editor {
                 flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-content">
+            <div class="app-title">Notepad.md</div>
+            <div class="titlebar-center"></div>
+            <div class="titlebar-menu">
+                <button class="menu-button" onclick="toggleMenu()">File</button>
+                <div class="menu-dropdown" id="fileMenu">
+                    <div class="menu-item" onclick="menuCreateNewTab()">
+                        <span>New Tab</span>
+                        <span class="menu-shortcut">Ctrl+T</span>
+                    </div>
+                    <div class="menu-item" onclick="openFile()">
+                        <span>Open File</span>
+                        <span class="menu-shortcut">Ctrl+O</span>
+                    </div>
+                    <div class="menu-item" onclick="openSession()">
+                        <span>Open Session</span>
+                        <span class="menu-shortcut">Ctrl+Shift+O</span>
+                    </div>
+                    <div class="menu-item" onclick="menuSaveCurrentTab()">
+                        <span>Save</span>
+                        <span class="menu-shortcut">Ctrl+S</span>
+                    </div>
+                    <div class="menu-item" onclick="menuSaveCurrentTabAs()">
+                        <span>Save Tab As</span>
+                        <span class="menu-shortcut">Ctrl+Alt+S</span>
+                    </div>
+                    <div class="menu-item" onclick="menuSaveAllTabs()">
+                        <span>Save Session</span>
+                        <span class="menu-shortcut">Ctrl+Shift+S</span>
+                    </div>
+                    
+                    
+                </div>
+            </div>
+            <div class="window-controls">
+                <button class="window-control minimize" onclick="minimizeWindow()" title="Minimize">−</button>
+                <button class="window-control maximize" onclick="toggleMaximize()" title="Maximize" id="maximizeBtn">□</button>
+                <button class="window-control close" onclick="closeWindow()" title="Close">×</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs-container">
+        <div class="tabs-list" id="tabsContainer">
+        </div>
+        <div class="tab-controls">
+            <button class="preview-toggle-btn" onclick="togglePreview()" title="Toggle Preview">🔍</button>
+            <button class="dark-mode-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="editor-container">
+            <textarea class="editor" id="editor" placeholder="Start typing your markdown..."></textarea>
+            <div class="divider" id="divider"></div>
+            <div class="preview" id="preview"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="autosave-indicator" id="autosaveStatus">Auto-saved</div>
+        <div class="word-count" id="wordCount">0 words</div>
+    </div>
+
+    <script>
+        let ipcRenderer;
+        try {
+            const { ipcRenderer: ipc } = require('electron');
+            ipcRenderer = ipc;
+        } catch (e) {
+            console.warn('Running in browser mode - some features will be disabled');
+        }
+        
+        let tabs = [];
+        let activeTabId = null;
+        let viewMode = 'split'; // 'split', 'source', 'preview'
+        let autosaveTimeout = null;
+
+        // Session management functions - defined early to ensure availability
+        async function saveSession() {
+            if (tabs.length === 0) return;
+            
+            // Save current editor content to active tab
+            if (activeTabId) {
+                const currentTab = tabs.find(t => t.id === activeTabId);
+                if (currentTab) {
+                    currentTab.content = document.getElementById('editor').value;
+                }
+            }
+
+            const sessionData = {
+                tabs: tabs,
+                activeTabId: activeTabId,
+                timestamp: Date.now()
+            };
+
+            await ipcRenderer.invoke('save-session', sessionData);
+        }
+
+        async function loadSessionFromFile(filePath) {
+            console.log('Loading session from file:', filePath);
+            try {
+                const result = await ipcRenderer.invoke('load-all-tabs', filePath);
+                console.log('Load result:', result);
+                
+                if (result.success && result.data && result.data.tabs) {
+                    // Clear current tabs
+                    tabs = [];
+                    activeTabId = null;
+                    
+                    // Load tabs from file
+                    tabs = result.data.tabs.map(tab => ({
+                        ...tab,
+                        unsaved: false // Mark as saved since we just loaded from file
+                    }));
+                    
+                    console.log('Loaded tabs:', tabs);
+                    
+                    if (tabs.length > 0) {
+                        renderTabs();
+                        switchToTab(tabs[0].id);
+                        console.log('Session loaded successfully with', tabs.length, 'tabs');
+                    } else {
+                        createNewTab();
+                        console.log('No tabs in session, created new tab');
+                    }
+                } else {
+                    console.error('Failed to load session:', result.error || 'Unknown error');
+                    alert('Failed to load session: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+                alert('Error loading session: ' + error.message);
+            }
+        }
+
+        async function loadSession() {
+            const result = await ipcRenderer.invoke('load-session');
+            if (result.success && result.data && result.data.tabs && result.data.tabs.length > 0) {
+                tabs = result.data.tabs;
+                activeTabId = result.data.activeTabId;
+                
+                // Ensure activeTabId is valid
+                if (!tabs.find(t => t.id === activeTabId)) {
+                    activeTabId = tabs[0].id;
+                }
+                
+                renderTabs();
+                switchToTab(activeTabId);
+            } else {
+                // No session found, create new tab
+                createNewTab();
+            }
+        }
+
         async function saveAllTabs() {
             const result = await ipcRenderer.invoke('show-save-all-dialog', {
                 defaultPath: 'my-notes.npmd'
@@ -1106,54 +1383,206 @@
                 return;
             }
             
-            // Enhanced markdown to HTML conversion
+            // Store footnotes and references for later processing
+            const footnotes = {};
+            const references = {};
             let html = content;
+            
+            // Extract and store footnote definitions
+            html = html.replace(/^\[\^([^\]]+)\]:\s*(.+)$/gm, (match, id, text) => {
+                footnotes[id] = text.trim();
+                return '';
+            });
+            
+            // Extract and store reference definitions
+            html = html.replace(/^\[([^\]]+)\]:\s*(.+?)(?:\s+"([^"]*)")?$/gm, (match, id, url, title) => {
+                references[id] = { url: url.trim(), title: title || '' };
+                return '';
+            });
+            
+            // Process escape characters (before other processing)
+            html = html.replace(/\\(.)/g, '&#92;$1');
             
             // Code blocks first (to protect them from other processing)
             html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // Block math
+            html = html.replace(/\$\$([\s\S]*?)\$\$/g, '<div class="math-block">$1</div>');
+            
+            // Tables with alignment
+            html = html.replace(/^\|(.+)\|\s*\n\|([:\-\|\s]+)\|\s*\n((?:\|.*\|\s*\n?)*)/gm, (match, header, separator, rows) => {
+                const headerCells = header.split('|').map(cell => cell.trim()).filter(cell => cell);
+                const alignments = separator.split('|').map(cell => cell.trim()).filter(cell => cell);
+                const rowLines = rows.trim().split('\n').filter(line => line.trim());
+                
+                let tableClass = '';
+                const cellAlignments = alignments.map(align => {
+                    if (align.startsWith(':') && align.endsWith(':')) return 'center';
+                    if (align.endsWith(':')) return 'right';
+                    return 'left';
+                });
+                
+                let tableHTML = '<table>';
+                tableHTML += '<thead><tr>';
+                headerCells.forEach((cell, i) => {
+                    const align = cellAlignments[i] || 'left';
+                    tableHTML += `<th style="text-align: ${align}">${cell}</th>`;
+                });
+                tableHTML += '</tr></thead><tbody>';
+                
+                rowLines.forEach(rowLine => {
+                    const cells = rowLine.replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+                    tableHTML += '<tr>';
+                    cells.forEach((cell, i) => {
+                        const align = cellAlignments[i] || 'left';
+                        tableHTML += `<td style="text-align: ${align}">${cell}</td>`;
+                    });
+                    tableHTML += '</tr>';
+                });
+                
+                tableHTML += '</tbody></table>';
+                return tableHTML;
+            });
             
             // Split into lines for processing
             const lines = html.split('\n');
             const processedLines = [];
             let inList = false;
+            let inDefinitionList = false;
+            let inTaskList = false;
+            let listType = 'ul';
             
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i];
                 
                 // Headers
                 if (line.match(/^#{1,6}\s/)) {
+                    if (inList) {
+                        processedLines.push(`</${listType}>`);
+                        inList = false;
+                        inTaskList = false;
+                    }
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
                     const level = line.match(/^#+/)[0].length;
                     const text = line.replace(/^#+\s*/, '');
                     line = `<h${level}>${text}</h${level}>`;
                 }
-                // Lists
+                // Definition lists
+                else if (line.match(/^([^:\n]+)\n?\s*$/)) {
+                    const nextLine = i + 1 < lines.length ? lines[i + 1] : '';
+                    if (nextLine.match(/^:\s+/)) {
+                        if (inList) {
+                            processedLines.push(`</${listType}>`);
+                            inList = false;
+                            inTaskList = false;
+                        }
+                        if (!inDefinitionList) {
+                            processedLines.push('<dl>');
+                            inDefinitionList = true;
+                        }
+                        line = `<dt>${line.trim()}</dt>`;
+                    }
+                }
+                // Definition list definitions
+                else if (line.match(/^:\s+(.+)/)) {
+                    const definition = line.replace(/^:\s+/, '');
+                    line = `<dd>${definition}</dd>`;
+                }
+                // Task lists
+                else if (line.match(/^\s*-\s+\[([ x])\]\s+(.+)/)) {
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
+                    if (!inTaskList) {
+                        if (inList && listType !== 'ul') {
+                            processedLines.push(`</${listType}>`);
+                        }
+                        if (!inList || listType !== 'ul') {
+                            processedLines.push('<ul class="task-list">');
+                        }
+                        inList = true;
+                        inTaskList = true;
+                        listType = 'ul';
+                    }
+                    const checked = line.includes('[x]');
+                    const text = line.replace(/^\s*-\s+\[[ x]\]\s+/, '');
+                    const checkedAttr = checked ? 'checked' : '';
+                    const completedClass = checked ? ' completed' : '';
+                    line = `<li class="task-list-item${completedClass}"><input type="checkbox" ${checkedAttr} disabled> ${text}</li>`;
+                }
+                // Regular lists
                 else if (line.match(/^\s*[\*\-\+]\s/)) {
-                    if (!inList) {
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
+                    if (!inList || inTaskList) {
+                        if (inList) processedLines.push(`</${listType}>`);
                         processedLines.push('<ul>');
                         inList = true;
+                        inTaskList = false;
+                        listType = 'ul';
                     }
                     const text = line.replace(/^\s*[\*\-\+]\s/, '');
                     line = `<li>${text}</li>`;
                 }
                 // Numbered lists
                 else if (line.match(/^\s*\d+\.\s/)) {
-                    if (!inList) {
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
+                    if (!inList || listType !== 'ol' || inTaskList) {
+                        if (inList) processedLines.push(`</${listType}>`);
                         processedLines.push('<ol>');
                         inList = true;
+                        inTaskList = false;
+                        listType = 'ol';
                     }
                     const text = line.replace(/^\s*\d+\.\s/, '');
                     line = `<li>${text}</li>`;
                 }
                 // Blockquotes
                 else if (line.match(/^\s*>\s/)) {
+                    if (inList) {
+                        processedLines.push(`</${listType}>`);
+                        inList = false;
+                        inTaskList = false;
+                    }
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
                     const text = line.replace(/^\s*>\s*/, '');
                     line = `<blockquote>${text}</blockquote>`;
+                }
+                // Horizontal rules
+                else if (line.match(/^(-{3,}|\*{3,}|_{3,})$/)) {
+                    if (inList) {
+                        processedLines.push(`</${listType}>`);
+                        inList = false;
+                        inTaskList = false;
+                    }
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
+                    }
+                    line = '<hr>';
                 }
                 // Regular paragraphs
                 else if (line.trim() !== '') {
                     if (inList) {
-                        processedLines.push(inList === 'ul' ? '</ul>' : '</ol>');
+                        processedLines.push(`</${listType}>`);
                         inList = false;
+                        inTaskList = false;
+                    }
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
                     }
                     // Don't wrap if it's already an HTML tag
                     if (!line.match(/^<[^>]+>/)) {
@@ -1163,8 +1592,13 @@
                 // Empty lines
                 else {
                     if (inList) {
-                        processedLines.push('</ul>');
+                        processedLines.push(`</${listType}>`);
                         inList = false;
+                        inTaskList = false;
+                    }
+                    if (inDefinitionList) {
+                        processedLines.push('</dl>');
+                        inDefinitionList = false;
                     }
                     line = '';
                 }
@@ -1176,28 +1610,61 @@
             
             // Close any open lists
             if (inList) {
-                processedLines.push('</ul>');
+                processedLines.push(`</${listType}>`);
+            }
+            if (inDefinitionList) {
+                processedLines.push('</dl>');
             }
             
             html = processedLines.join('\n');
             
-            // Inline formatting
-            html = html
-                // Bold (before italic to avoid conflicts)
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/__(.*?)__/g, '<strong>$1</strong>')
-                // Italic
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/_(.*?)_/g, '<em>$1</em>')
-                // Strikethrough
-                .replace(/~~(.*?)~~/g, '<del>$1</del>')
-                // Inline code
-                .replace(/`(.*?)`/g, '<code>$1</code>')
-                // Links
-                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-                // Horizontal rules
-                .replace(/^---$/gm, '<hr>')
-                .replace(/^\*\*\*$/gm, '<hr>');
+            // Inline formatting (order matters!)
+            // Math first (before other formatting)
+            html = html.replace(/\$([^$\n]+)\$/g, '<span class="math-inline">$1</span>');
+            
+            // Bold (before italic to avoid conflicts)
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+            
+            // Italic
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+            
+            // Strikethrough
+            html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
+            
+            // Inline code (after math to avoid conflicts)
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Footnote references
+            html = html.replace(/\[\^([^\]]+)\]/g, '<sup><a href="#footnote-$1" class="footnote-ref">$1</a></sup>');
+            
+            // Reference-style links
+            html = html.replace(/\[([^\]]+)\]\[([^\]]*)\]/g, (match, text, ref) => {
+                const refKey = ref || text;
+                const reference = references[refKey];
+                if (reference) {
+                    const title = reference.title ? ` title="${reference.title}"` : '';
+                    return `<a href="${reference.url}" class="ref-link"${title} target="_blank">${text}</a>`;
+                }
+                return match;
+            });
+            
+            // Direct links
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+            
+            // Restore escaped characters
+            html = html.replace(/&#92;(.)/g, '$1');
+            
+            // Add footnotes section if any exist
+            const footnoteKeys = Object.keys(footnotes);
+            if (footnoteKeys.length > 0) {
+                html += '<div class="footnotes"><hr>';
+                footnoteKeys.forEach(key => {
+                    html += `<div class="footnote-item" id="footnote-${key}" data-footnote="${key}">${footnotes[key]}</div>`;
+                });
+                html += '</div>';
+            }
             
             preview.innerHTML = html;
         }
