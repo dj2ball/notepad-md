@@ -1225,8 +1225,8 @@
                     const definition = line.replace(/^:\s+/, '');
                     line = `<dd>${definition}</dd>`;
                 }
-                // Task lists (CHECK BEFORE regular lists!)
-                else if (line.match(/^\s*-\s+\[([ xX])\]\s+(.+)/)) {
+                // Task lists (CHECK BEFORE regular lists!) - More flexible regex
+                else if (line.match(/^\s*-\s*\[[ xX]\]/)) {
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
@@ -1247,13 +1247,13 @@
                         listType = 'ul';
                     }
                     const checked = line.toLowerCase().includes('[x]');
-                    const text = line.replace(/^\s*-\s+\[[ xX]\]\s+/, '');
+                    const text = line.replace(/^\s*-\s*\[[ xX]\]\s*/, '');
                     const checkedAttr = checked ? 'checked' : '';
                     const completedClass = checked ? ' completed' : '';
                     line = `<li class="task-list-item${completedClass}"><input type="checkbox" ${checkedAttr} disabled> ${text}</li>`;
                 }
-                // Regular lists (AFTER task lists!)
-                else if (line.match(/^\s*[\*\-\+]\s/)) {
+                // Regular lists (AFTER task lists!) - Avoid catching task lists
+                else if (line.match(/^\s*[\*\-\+]\s/) && !line.match(/^\s*-\s*\[[ xX]\]/)) {
                     if (inDefinitionList) {
                         processedLines.push('</dl>');
                         inDefinitionList = false;
