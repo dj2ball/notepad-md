@@ -1918,7 +1918,7 @@
                 const result = await ipcRenderer.invoke('save-file', currentTab.filePath, currentTab.content);
                 if (result.success) {
                     currentTab.unsaved = false;
-                    updateTabTitle(activeTabId, currentTab.title, false);
+                    renderTabs(); // Re-render to clear blue dot
                     updateFileLocation(); // Update file location display
                 }
             } else {
@@ -1948,7 +1948,7 @@
                     // Update title to filename without extension
                     const path = require('path');
                     currentTab.title = path.basename(result.filePath, '.md');
-                    updateTabTitle(activeTabId, currentTab.title, false);
+                    renderTabs(); // Re-render to update title and clear blue dot
                     updateFileLocation(); // Update file location display
                 }
             }
@@ -1984,8 +1984,10 @@
                     // Mark all tabs as saved
                     tabs.forEach(tab => {
                         tab.unsaved = false;
-                        updateTabTitle(tab.id, tab.title, false);
                     });
+                    
+                    // Re-render tabs to clear blue dots
+                    renderTabs();
                 }
             }
         }
