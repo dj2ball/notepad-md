@@ -1463,6 +1463,9 @@
         let currentMatches = [];
         let currentMatchIndex = -1;
         let highlightTimeout = null;
+        
+        // Session file tracking
+        let currentSessionFilePath = null;
 
         // Smart preview update that handles images intelligently
         function smartUpdatePreview() {
@@ -1583,6 +1586,9 @@
                 console.log('Load result:', result);
                 
                 if (result.success && result.data && result.data.tabs) {
+                    // Track the current session file path
+                    currentSessionFilePath = filePath;
+                    
                     // Clear current tabs
                     tabs = [];
                     activeTabId = null;
@@ -1954,8 +1960,11 @@
                 return;
             }
             
+            // Use current session file path as default, or fallback to 'my-notes.npmd'
+            const defaultPath = currentSessionFilePath || 'my-notes.npmd';
+            
             const result = await ipcRenderer.invoke('show-save-all-dialog', {
-                defaultPath: 'my-notes.npmd'
+                defaultPath: defaultPath
             });
 
             if (!result.canceled && result.filePath) {
@@ -1969,6 +1978,9 @@
 
                 const saveResult = await ipcRenderer.invoke('save-all-tabs', result.filePath, tabs);
                 if (saveResult.success) {
+                    // Track the current session file path for future saves
+                    currentSessionFilePath = result.filePath;
+                    
                     // Mark all tabs as saved
                     tabs.forEach(tab => {
                         tab.unsaved = false;
