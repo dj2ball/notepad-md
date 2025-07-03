@@ -1565,7 +1565,15 @@
                 timestamp: Date.now()
             };
 
-            await ipcRenderer.invoke('save-session', sessionData);
+            const result = await ipcRenderer.invoke('save-session', sessionData);
+            
+            // If save was successful, mark all tabs as saved (clear blue dots)
+            if (result && result.success !== false) {
+                tabs.forEach(tab => {
+                    tab.unsaved = false;
+                });
+                renderTabs(); // Re-render to remove blue dots
+            }
         }
 
         async function loadSessionFromFile(filePath) {
