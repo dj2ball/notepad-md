@@ -48,6 +48,9 @@ sessions/
 # Memory bank (development docs - keep local)
 memory-bank/
 
+# Cursor AI project intelligence (keep local)
+.cursorrules
+
 # Test files
 *-test.md
 test-*.md
