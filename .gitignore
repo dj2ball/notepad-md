@@ -43,4 +43,13 @@ yarn-error.log*
 
 # Session storage (user data)
 *.npmd
-sessions/ 
+sessions/
+
+# Memory bank (development docs - keep local)
+memory-bank/
+
+# Test files
+*-test.md
+test-*.md
+image-test-assets/
+lines 
