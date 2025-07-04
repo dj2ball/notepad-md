@@ -416,9 +416,11 @@ ipcMain.handle('save-image-from-clipboard', async (event, documentPath, imageDat
       assetDir = path.join(docDir, `${docName}-assets`);
       relativePath = `./${docName}-assets/${filename}`;
     } else {
-      // Document is unsaved - use global assets folder
-      assetDir = path.join(process.cwd(), 'assets');
-      relativePath = `./assets/${filename}`;
+      // Document is unsaved - use user data directory for assets
+      const userDataPath = app.getPath('userData');
+      assetDir = path.join(userDataPath, 'assets');
+      // Use absolute path for images in user data directory since document location is unknown
+      relativePath = path.join(assetDir, filename).replace(/\\/g, '/');
     }
     
     // Create directory if it doesn't exist
@@ -470,6 +472,17 @@ ipcMain.handle('copy-image-to-assets', async (event, documentPath, sourceImagePa
     const relativePath = `./${docName}-assets/${filename}`;
     
     return { success: true, imagePath: targetPath, relativePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Get user assets directory path for frontend
+ipcMain.handle('get-user-assets-dir', async () => {
+  try {
+    const userDataPath = app.getPath('userData');
+    const assetDir = path.join(userDataPath, 'assets');
+    return { success: true, assetDir };
   } catch (error) {
     return { success: false, error: error.message };
   }
