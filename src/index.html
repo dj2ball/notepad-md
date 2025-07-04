@@ -1654,6 +1654,9 @@
                 smartUpdatePreview(); // Use smart update to handle images intelligently
             });
 
+            // Set up paste event handler for image pasting
+            document.getElementById('editor').addEventListener('paste', handlePaste);
+
             // Listen for menu commands (only if we have ipcRenderer)
             if (ipcRenderer) {
                 ipcRenderer.on('menu-new-tab', () => createNewTab());
@@ -3048,6 +3051,172 @@
                 }
             }
         });
+
+        // Paste event handler for image pasting
+        async function handlePaste(e) {
+            const items = e.clipboardData.items;
+            let hasImage = false;
+            
+            // Check if clipboard contains image data
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    hasImage = true;
+                    e.preventDefault(); // Prevent default paste behavior
+                    
+                    const file = items[i].getAsFile();
+                    if (file) {
+                        await handleImagePaste(file);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Handle image paste operation
+        async function handleImagePaste(file) {
+            try {
+                const currentTab = tabs.find(t => t.id === activeTabId);
+                if (!currentTab) {
+                    showImagePasteMessage('No active tab found.');
+                    return;
+                }
+
+                // Convert file to base64
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const base64Data = e.target.result.split(',')[1]; // Remove data URL prefix
+                        const extension = getImageExtension(file.type);
+                        
+                        // Save image via IPC (handles both saved and unsaved documents)
+                        const result = await ipcRenderer.invoke('save-image-from-clipboard', 
+                            currentTab.filePath, base64Data, extension);
+                        
+                        if (result.success) {
+                            // Insert markdown image syntax at cursor position
+                            insertImageMarkdown(result.relativePath);
+                            
+                            // Show success message with location info
+                            const location = currentTab.filePath ? 'document folder' : 'assets folder';
+                            showImagePasteMessage(`Image pasted successfully to ${location}!`, 'success');
+                            
+                            // Update preview
+                            smartUpdatePreview();
+                            
+                            // Mark tab as unsaved
+                            handleContentChange();
+                        } else {
+                            showImagePasteMessage('Failed to save image: ' + result.error);
+                        }
+                    } catch (error) {
+                        console.error('Error processing pasted image:', error);
+                        showImagePasteMessage('Error processing image: ' + error.message);
+                    }
+                };
+                
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error handling image paste:', error);
+                showImagePasteMessage('Error handling image paste: ' + error.message);
+            }
+        }
+
+        // Get image file extension from MIME type
+        function getImageExtension(mimeType) {
+            const mimeToExt = {
+                'image/png': 'png',
+                'image/jpeg': 'jpg',
+                'image/jpg': 'jpg',
+                'image/gif': 'gif',
+                'image/webp': 'webp',
+                'image/svg+xml': 'svg'
+            };
+            return mimeToExt[mimeType] || 'png';
+        }
+
+        // Insert markdown image syntax at cursor position
+        function insertImageMarkdown(imagePath) {
+            const editor = document.getElementById('editor');
+            const cursorPosition = editor.selectionStart;
+            const textBefore = editor.value.substring(0, cursorPosition);
+            const textAfter = editor.value.substring(cursorPosition);
+            
+            // Generate alt text from filename
+            const filename = imagePath.split('/').pop();
+            
+            // Provide meaningful alt text for pasted images
+            let altText;
+            if (filename.startsWith('paste-')) {
+                altText = 'Pasted image';
+            } else if (filename.startsWith('image-')) {
+                altText = 'Image';
+            } else {
+                // For other images, use filename as before
+                altText = filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            }
+            
+            // Create markdown image syntax
+            const imageMarkdown = `![${altText}](${imagePath})`;
+            
+            // Insert at cursor position
+            editor.value = textBefore + imageMarkdown + textAfter;
+            
+            // Set cursor position after the inserted text
+            const newCursorPosition = cursorPosition + imageMarkdown.length;
+            editor.setSelectionRange(newCursorPosition, newCursorPosition);
+            
+            // Focus back on editor
+            editor.focus();
+        }
+
+        // Show image paste status message
+        function showImagePasteMessage(message, type = 'info') {
+            // Create or update message element
+            let messageEl = document.getElementById('imagePasteMessage');
+            if (!messageEl) {
+                messageEl = document.createElement('div');
+                messageEl.id = 'imagePasteMessage';
+                messageEl.style.cssText = `
+                    position: fixed;
+                    top: 70px;
+                    right: 16px;
+                    background: var(--bg-primary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 6px;
+                    padding: 12px 16px;
+                    font-size: 13px;
+                    box-shadow: 0 4px 16px var(--shadow-medium);
+                    z-index: 1001;
+                    max-width: 300px;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    opacity: 0;
+                    transform: translateY(-10px);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                `;
+                document.body.appendChild(messageEl);
+            }
+            
+            // Set message content and styling
+            messageEl.textContent = message;
+            messageEl.style.color = type === 'success' ? 'var(--accent-color)' : 'var(--text-primary)';
+            messageEl.style.borderColor = type === 'success' ? 'var(--accent-color)' : 'var(--border-color)';
+            
+            // Show message
+            messageEl.style.opacity = '1';
+            messageEl.style.transform = 'translateY(0)';
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                messageEl.style.opacity = '0';
+                messageEl.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    if (messageEl && messageEl.parentNode) {
+                        messageEl.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
     </script>
 </body>
 </html>

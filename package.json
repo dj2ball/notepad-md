@@ -1,6 +1,6 @@
 {
   "name": "notepad-md",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "A clean, minimal markdown editor with tabs. The simplicity you love, with the features you need.",
   "main": "main.js",
   "homepage": "https://github.com/yourusername/notepad-md",
@@ -11,7 +11,7 @@
     "build:win": "electron-builder --win",
     "build:portable": "electron-builder --win portable",
     "build:simple": "electron-packager . notepad-md --platform=win32 --arch=x64 --out=dist --overwrite --icon=assets/256.ico",
-    "package:zip": "npm run build:simple && powershell Compress-Archive -Path 'dist/notepad-md-win32-x64' -DestinationPath 'dist/Notepad.md-v1.1.0-Windows.zip' -Force",
+    "package:zip": "npm run build:simple && powershell Compress-Archive -Path 'dist/notepad-md-win32-x64' -DestinationPath 'dist/Notepad.md-v1.2.0-Windows.zip' -Force",
     "dist": "electron-builder --publish=never",
     "pack": "electron-builder --dir"
   },

@@ -1,8 +1,14 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 let mainWindow;
+
+// Helper function to generate short UUID for filenames
+function generateShortId() {
+  return crypto.randomUUID().substring(0, 8);
+}
 
 function createWindow() {
   // Create the browser window
@@ -397,28 +403,33 @@ ipcMain.handle('create-asset-directory', async (event, documentPath) => {
 
 ipcMain.handle('save-image-from-clipboard', async (event, documentPath, imageData, extension = 'png') => {
   try {
-    if (!documentPath) {
-      return { success: false, error: 'Document must be saved first' };
+    let assetDir, relativePath;
+    
+    // Generate unique filename with short UUID
+    const shortId = generateShortId();
+    const filename = `paste-${shortId}.${extension}`;
+    
+    if (documentPath) {
+      // Document is saved - use document-adjacent folder
+      const docDir = path.dirname(documentPath);
+      const docName = path.basename(documentPath, path.extname(documentPath));
+      assetDir = path.join(docDir, `${docName}-assets`);
+      relativePath = `./${docName}-assets/${filename}`;
+    } else {
+      // Document is unsaved - use global assets folder
+      assetDir = path.join(process.cwd(), 'assets');
+      relativePath = `./assets/${filename}`;
     }
     
-    // Create asset directory
-    const assetResult = await ipcMain.handle('create-asset-directory', event, documentPath);
-    if (!assetResult.success) {
-      return assetResult;
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(assetDir)) {
+      fs.mkdirSync(assetDir, { recursive: true });
     }
-    
-    // Generate unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `pasted-image-${timestamp}.${extension}`;
-    const imagePath = path.join(assetResult.assetDir, filename);
     
     // Save image data
+    const imagePath = path.join(assetDir, filename);
     const buffer = Buffer.from(imageData, 'base64');
     fs.writeFileSync(imagePath, buffer);
-    
-    // Return relative path for markdown
-    const docName = path.basename(documentPath, path.extname(documentPath));
-    const relativePath = `./${docName}-assets/${filename}`;
     
     return { success: true, imagePath, relativePath };
   } catch (error) {
@@ -437,22 +448,25 @@ ipcMain.handle('copy-image-to-assets', async (event, documentPath, sourceImagePa
     }
     
     // Create asset directory
-    const assetResult = await ipcMain.handle('create-asset-directory', event, documentPath);
-    if (!assetResult.success) {
-      return assetResult;
+    const docDir = path.dirname(documentPath);
+    const docName = path.basename(documentPath, path.extname(documentPath));
+    const assetDir = path.join(docDir, `${docName}-assets`);
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(assetDir)) {
+      fs.mkdirSync(assetDir, { recursive: true });
     }
     
-    // Generate filename
+    // Generate filename with short UUID
     const ext = path.extname(sourceImagePath);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `image-${timestamp}${ext}`;
-    const targetPath = path.join(assetResult.assetDir, filename);
+    const shortId = generateShortId();
+    const filename = `image-${shortId}${ext}`;
+    const targetPath = path.join(assetDir, filename);
     
     // Copy file
     fs.copyFileSync(sourceImagePath, targetPath);
     
     // Return relative path for markdown
-    const docName = path.basename(documentPath, path.extname(documentPath));
     const relativePath = `./${docName}-assets/${filename}`;
     
     return { success: true, imagePath: targetPath, relativePath };
